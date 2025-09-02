@@ -1,0 +1,28 @@
+﻿<Window x:Class="ConcentradoKPI.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ConcentradoKPI.App.Views"
+        mc:Ignorable="d"
+        Title="Concentrado KPI" Height="450" Width="800">
+    <Grid>
+        <Grid>
+            <TextBlock Text="{Binding Mensaje}"
+               VerticalAlignment="Center"
+               HorizontalAlignment="Center"
+               FontSize="28"
+               FontWeight="Bold"
+               Foreground="DarkBlue"/>
+        </Grid>
+
+        <!-- Si no usarás columnas aún, déjalo simple -->
+        <!-- O usa dos columnas de ejemplo: -->
+        <!--
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+        -->
+    </Grid>
+</Window>
