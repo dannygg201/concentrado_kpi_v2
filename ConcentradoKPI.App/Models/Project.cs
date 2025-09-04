@@ -1,10 +1,11 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace ConcentradoKPI.App.Models
 {
-    public class Company : INotifyPropertyChanged
+    public class Project : INotifyPropertyChanged
     {
         private string _name = "";
         public string Name
@@ -13,8 +14,13 @@ namespace ConcentradoKPI.App.Models
             set { if (_name != value) { _name = value; OnPropertyChanged(); } }
         }
 
-        public string? Description { get; set; }
-        public ObservableCollection<Project> Projects { get; } = new();
+        public string? Code { get; set; }
+        public string? Location { get; set; }
+        public string? Owner { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+
+        public ObservableCollection<WeekData> Weeks { get; } = new();
 
         private bool _isExpanded;
         public bool IsExpanded

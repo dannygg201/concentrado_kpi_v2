@@ -1,28 +1,157 @@
 ﻿<Window x:Class="ConcentradoKPI.App.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ConcentradoKPI.App.Views"
-        mc:Ignorable="d"
-        Title="Concentrado KPI" Height="450" Width="800">
-    <Grid>
-        <Grid>
-            <TextBlock Text="{Binding Mensaje}"
-               VerticalAlignment="Center"
-               HorizontalAlignment="Center"
-               FontSize="28"
-               FontWeight="Bold"
-               Foreground="DarkBlue"/>
-        </Grid>
+        xmlns:vm="clr-namespace:ConcentradoKPI.App.ViewModels"
+        xmlns:models="clr-namespace:ConcentradoKPI.App.Models"
+        Title="Concentrado KPI" Width="1000" Height="650"
+        WindowStartupLocation="CenterScreen">
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
 
-        <!-- Si no usarás columnas aún, déjalo simple -->
-        <!-- O usa dos columnas de ejemplo: -->
-        <!--
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        -->
+
+        <!-- TOP BAR -->
+        <DockPanel Grid.Row="0" Grid.ColumnSpan="2" Background="#11254a" LastChildFill="False">
+            <TextBlock Text="Concentrado KPI" Foreground="White" Margin="16,0"
+                       FontSize="20" FontWeight="Bold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+            <StackPanel Orientation="Horizontal" Margin="8" DockPanel.Dock="Right">
+                <Button Content="Importar" Margin="4" Padding="12,6"
+                        Command="{Binding ImportCommand}"/>
+                <Button Content="Exportar" Margin="4" Padding="12,6"
+                        Command="{Binding ExportCommand}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- SIDEBAR -->
+        <StackPanel Grid.Row="1" Grid.Column="0" Background="#F7F7F7">
+            <TextBlock Text="Compañias" Margin="16,16,16,8" FontWeight="SemiBold" FontSize="14"/>
+
+            <TreeView Margin="12" SelectedItemChanged="TreeView_SelectedItemChanged">
+
+                <TreeView.Resources>
+                    <!-- MENÚ para Compañía -->
+                    <ContextMenu x:Key="CompanyMenu" Opened="CompanyMenu_Opened">
+                        <MenuItem Header="➕ Agregar proyecto"
+                  Command="{Binding PlacementTarget.Tag.AddProjectCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <Separator/>
+                        <MenuItem Header="✏️ Renombrar compañía"
+                  Command="{Binding PlacementTarget.Tag.RenameCompanyCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <MenuItem Header="🗑️ Eliminar compañía"
+                  Command="{Binding PlacementTarget.Tag.DeleteCompanyCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    </ContextMenu>
+
+                    <!-- MENÚ para Proyecto -->
+                    <ContextMenu x:Key="ProjectMenu" Opened="ProjectMenu_Opened">
+                        <MenuItem Header="➕ Agregar semana"
+                  Command="{Binding PlacementTarget.Tag.AddWeekCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <Separator/>
+                        <MenuItem Header="✏️ Renombrar proyecto"
+                  Command="{Binding PlacementTarget.Tag.RenameProjectCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <MenuItem Header="🗑️ Eliminar proyecto"
+                  Command="{Binding PlacementTarget.Tag.DeleteProjectCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    </ContextMenu>
+
+                    <!-- MENÚ para Semana -->
+                    <ContextMenu x:Key="WeekMenu" Opened="WeekMenu_Opened">
+                        <MenuItem Header="✏️ Editar semana"
+                  Command="{Binding PlacementTarget.Tag.RenameWeekCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        <MenuItem Header="🗑️ Eliminar semana"
+                  Command="{Binding PlacementTarget.Tag.DeleteWeekCommand,
+                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    </ContextMenu>
+                </TreeView.Resources>
+
+
+                <!-- ===== Árbol jerárquico ===== -->
+                <TreeView.ItemsSource>
+                    <Binding Path="Companies"/>
+                </TreeView.ItemsSource>
+
+                <TreeView.ItemTemplate>
+                    <!-- Nivel 1: Compañía -->
+                    <HierarchicalDataTemplate DataType="{x:Type models:Company}" ItemsSource="{Binding Projects}">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+               Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
+               ContextMenu="{StaticResource CompanyMenu}"/>
+                        <!-- Nivel 2: Proyecto -->
+                        <HierarchicalDataTemplate.ItemTemplate>
+        <HierarchicalDataTemplate DataType="{x:Type models:Project}" ItemsSource="{Binding Weeks}">
+            <TextBlock Text="{Binding Name}"
+                       Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                       ContextMenu="{StaticResource ProjectMenu}"/>
+                                <!-- Nivel 3: Semana -->
+                                <HierarchicalDataTemplate.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:WeekData}">
+                                        <TextBlock
+      Text="{Binding WeekNumber, StringFormat=Semana {0}}"
+      Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
+      ContextMenu="{StaticResource WeekMenu}"/>
+                                    </DataTemplate>
+                                </HierarchicalDataTemplate.ItemTemplate>
+                            </HierarchicalDataTemplate>
+                        </HierarchicalDataTemplate.ItemTemplate>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
+
+                <!-- 🔹 Este bloque hace que el clic derecho seleccione el nodo -->
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem">
+                        <EventSetter Event="PreviewMouseRightButtonDown" Handler="TreeViewItem_PreviewMouseRightButtonDown"/>
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                    </Style>
+                </TreeView.ItemContainerStyle>
+            </TreeView>
+
+            <StackPanel Orientation="Vertical" Margin="12,0,12,12">
+                <Button Content="➕ Agregar compañía" Margin="0,6,0,0"
+                        Command="{Binding AddCompanyCommand}"/>
+                <Button Content="➕ Agregar proyecto a la compañía seleccionada" Margin="0,6,0,0"
+                        Command="{Binding AddProjectCommand}"/>
+                <Button Content="➕ Agregar semana al proyecto seleccionado" Margin="0,6,0,0"
+                        Command="{Binding AddWeekCommand}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- CONTENT -->
+        <Grid Grid.Row="1" Grid.Column="1" Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Detalle" FontSize="18" FontWeight="Bold" Margin="0,0,0,8"/>
+
+            <StackPanel Grid.Row="1" Orientation="Vertical" Margin="0,0,0,12">
+                <TextBlock Text="Compañía:"/>
+                <TextBlock Text="{Binding SelectedCompany.Name}" FontWeight="SemiBold"/>
+
+                <TextBlock Text="Proyecto:" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding SelectedProject.Name}" FontWeight="SemiBold"/>
+
+                <TextBlock Text="Semana:" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding SelectedWeek.WeekNumber}" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <Border Grid.Row="2" Padding="16" BorderBrush="#DDD" BorderThickness="1" CornerRadius="8">
+                <TextBlock Text="{Binding Mensaje}" FontSize="14"/>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
