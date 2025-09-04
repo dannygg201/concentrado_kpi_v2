@@ -11,7 +11,8 @@ namespace ConcentradoKPI.App.Services
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
             WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNameCaseInsensitive = true // 👈 por si el archivo viene con distinta capitalización
         };
 
         public async Task ExportAsync(string filePath, AppData data)

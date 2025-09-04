@@ -1,0 +1,63 @@
+﻿<Window x:Class="ConcentradoKPI.App.Views.PersonalVigenteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Personal vigente"
+        Width="980" Height="620"
+        WindowStartupLocation="CenterOwner">
+    <!-- Grid raíz SIN margen -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48"/>
+            <!-- barra -->
+            <RowDefinition Height="*"/>
+            <!-- contenido -->
+        </Grid.RowDefinitions>
+
+        <!-- Barra superior (pegada al borde como en MainWindow) -->
+        <DockPanel Grid.Row="0" Background="#11254a" LastChildFill="False">
+            <TextBlock Margin="16,0"
+                       FontSize="18"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       VerticalAlignment="Center"
+                       DockPanel.Dock="Left">
+                <Run Text="Personal vigente: "/>
+                <Run Text="{Binding Company.Name}"/>
+                <Run Text=" | Proyecto: "/>
+                <Run Text="{Binding Project.Name}"/>
+                <Run Text=" | Semana: "/>
+                <Run Text="{Binding Week.WeekNumber}"/>
+            </TextBlock>
+        </DockPanel>
+
+        <!-- Contenido con margen interno -->
+        <Grid Grid.Row="1" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Izquierda -->
+            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                <TextBlock Text="Empresa" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                <TextBlock Text="{Binding Company.Name}" Margin="0,0,0,8"/>
+
+                <TextBlock Text="Proyecto" FontWeight="SemiBold" Margin="0,12,0,6"/>
+                <TextBlock Text="{Binding Project.Name}"/>
+
+                <TextBlock Text="Rango de semana" FontWeight="SemiBold" Margin="0,12,0,6"/>
+                <TextBlock>
+                    <Run Text="{Binding Week.WeekStart, StringFormat={}{0:yyyy-MM-dd}}"/>
+                    <Run Text=" a "/>
+                    <Run Text="{Binding Week.WeekEnd, StringFormat={}{0:yyyy-MM-dd}}"/>
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Derecha -->
+            <Border Grid.Column="1" Padding="12" BorderBrush="#DDD" BorderThickness="1" CornerRadius="8" Background="White">
+                <TextBlock Text="Aquí vamos a poner la lista de personal vigente."
+                           TextWrapping="Wrap"/>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

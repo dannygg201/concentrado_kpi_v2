@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization; // 👈
 
 namespace ConcentradoKPI.App.Models
 {
@@ -14,9 +15,14 @@ namespace ConcentradoKPI.App.Models
         }
 
         public string? Description { get; set; }
-        public ObservableCollection<Project> Projects { get; } = new();
 
+        // 👇 IMPORTANTE: ahora con set;
+        public ObservableCollection<Project> Projects { get; set; } = new();
+
+        // 👇 No lo serialices (estado de UI)
+        [JsonIgnore]
         private bool _isExpanded;
+        [JsonIgnore]
         public bool IsExpanded
         {
             get => _isExpanded;

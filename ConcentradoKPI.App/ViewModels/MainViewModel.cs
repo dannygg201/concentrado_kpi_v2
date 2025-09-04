@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.IO; 
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;                 // MessageBox
@@ -95,17 +96,16 @@ namespace ConcentradoKPI.App.ViewModels
         public RelayCommand DeleteProjectCommand { get; }
         public RelayCommand DeleteWeekCommand { get; }
 
+        // Evento que la Vista escuchará para abrir la ventana de Personal Vigente
+        public event Action<Company, Project, WeekData>? OpenPersonalRequested;
+
+        // Comando para abrir Personal Vigente (solo si hay semana seleccionada)
+        public RelayCommand OpenPersonalCommand { get; }
+
 
         public MainViewModel()
         {
-            // Datos de ejemplo (puedes borrar si quieres iniciar vacío)
-            var c1 = new Company { Name = "Compañía A" };
-            var p1 = new Project { Name = "Proyecto 1", StartDate = DateTime.Today };
-            p1.Weeks.Add(new WeekData { WeekNumber = 1, Notes = "Arranque" });
-            p1.Weeks.Add(new WeekData { WeekNumber = 2, Notes = "Planeación" });
-            c1.Projects.Add(p1);
-            Companies.Add(c1);
-
+         
             AddCompanyCommand = new RelayCommand(_ => AddCompany());
             AddProjectCommand = new RelayCommand(_ => AddProject(), _ => SelectedCompany != null);
             AddWeekCommand = new RelayCommand(_ => AddWeek(), _ => SelectedProject != null);
@@ -120,6 +120,16 @@ namespace ConcentradoKPI.App.ViewModels
             DeleteCompanyCommand = new RelayCommand(_ => DeleteCompany(), _ => SelectedCompany != null);
             DeleteProjectCommand = new RelayCommand(_ => DeleteProject(), _ => SelectedProject != null);
             DeleteWeekCommand = new RelayCommand(_ => DeleteWeek(), _ => SelectedWeek != null);
+
+            OpenPersonalCommand = new RelayCommand(
+                _ =>
+                {
+                    if (SelectedCompany != null && SelectedProject != null && SelectedWeek != null)
+                        OpenPersonalRequested?.Invoke(SelectedCompany, SelectedProject, SelectedWeek);
+},
+    _ => SelectedWeek != null
+);
+
 
             RefreshCommandStates();
         }
@@ -317,66 +327,69 @@ namespace ConcentradoKPI.App.ViewModels
             // ExportCommand?.RaiseCanExecuteChanged();
         }
 
+        private void OpenPersonal()
+        {
+            if (SelectedCompany == null || SelectedProject == null || SelectedWeek == null) return;
+            OpenPersonalRequested?.Invoke(SelectedCompany, SelectedProject, SelectedWeek);
+        }
 
 
         // ====== Exportar ======
         private async Task ExportAsync()
         {
-            // Determinar alcance por selección actual (simple y amigable):
-            // - Si hay semana seleccionada -> proyecto (más adelante haremos por semana/varias semanas con asistente)
-            // - Si hay proyecto seleccionado -> preguntar Company vs Project
-            // - Si hay compañía -> preguntar Company vs All
-            // - Si nada -> All
-            ExportScope scope;
+            // 1) Elegir compañía a exportar
             var company = SelectedCompany;
-            var project = SelectedProject;
 
-            if (SelectedWeek != null && project != null)
+            // si no hay seleccionada o quieres forzar selección cuando haya más de una, pide al usuario
+            if (Companies.Count == 0)
             {
-                // Por ahora exportamos el PROYECTO completo si se seleccionó una semana
-                scope = ExportScope.Project;
-                company ??= FindCompanyForProject(project);
-            }
-            else if (project != null)
-            {
-                var res = MessageBox.Show(
-                    "¿Qué deseas exportar?\n\nSí = Solo el PROYECTO seleccionado\nNo = TODOS los proyectos de la COMPAÑÍA\nCancelar = Abortar",
-                    "Exportar",
-                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                if (res == MessageBoxResult.Cancel) return;
-                scope = (res == MessageBoxResult.Yes) ? ExportScope.Project : ExportScope.Company;
-                company ??= FindCompanyForProject(project);
-            }
-            else if (company != null)
-            {
-                var res = MessageBox.Show(
-                    "¿Exportar TODOS los proyectos de la COMPAÑÍA seleccionada?\n\nSí = Compañía completa\nNo = TODO (todas las compañías)\nCancelar = Abortar",
-                    "Exportar",
-                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                if (res == MessageBoxResult.Cancel) return;
-                scope = (res == MessageBoxResult.Yes) ? ExportScope.Company : ExportScope.All;
-            }
-            else
-            {
-                scope = ExportScope.All;
+                MessageBox.Show("No hay compañías para guardar.", "Guardar como",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
             }
 
-            // Sugerir nombre de archivo (fecha segura YYYY-MM-DD)
+            if (company == null || Companies.Count > 1)
+            {
+                company = AskCompany(Companies, SelectedCompany);
+                if (company == null) return; // canceló
+            }
+
+            // 2) Construir AppData SOLO con esa compañía
+            var data = new AppData();
+            data.Companies.Add(company);
+
+            // 3) Sugerir nombre y preguntar sobrescritura si existe
             var sfd = new SaveFileDialog
             {
-                FileName = GetSuggestedFileName(scope, company, project),
+                FileName = $"{San(company.Name)} - {DateTime.Now:yyyy-MM-dd}.kpi.json",
                 Filter = "Concentrado KPI (*.kpi.json)|*.kpi.json|JSON (*.json)|*.json",
-                Title = "Exportar"
+                Title = "Guardar como"
             };
 
             if (sfd.ShowDialog() == true)
             {
-                var data = BuildExportData(scope, company, project);
+                if (System.IO.File.Exists(sfd.FileName))
+                {
+                    var overwrite = MessageBox.Show(
+                        "El archivo ya existe. ¿Deseas reemplazarlo?",
+                        "Guardar como",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (overwrite != MessageBoxResult.Yes) return;
+                }
+
                 await _storage.ExportAsync(sfd.FileName, data);
-                Mensaje = $"Exportado a: {sfd.FileName}";
+                Mensaje = $"Guardado: {sfd.FileName}";
                 OnPropertyChanged(nameof(Mensaje));
             }
+
+            string San(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return "SinNombre";
+                foreach (var ch in System.IO.Path.GetInvalidFileNameChars()) s = s.Replace(ch, '_');
+                return s.Trim();
+            }
         }
+
 
         private AppData BuildExportData(ExportScope scope, Company? company, Project? project)
         {
@@ -450,6 +463,47 @@ namespace ConcentradoKPI.App.ViewModels
             }
             return data;
         }
+        // === Helpers de reemplazo a nivel compañía/proyecto ===
+
+        private Company? AskCompany(IList<Company> companies, Company? preselect)
+        {
+            // abre el mini-diálogo para elegir compañía
+            var owner = Application.Current?.Windows.Count > 0 ? Application.Current.Windows[0] : null;
+            var dlg = new Views.SelectCompanyDialog(companies, preselect) { Owner = owner };
+            return dlg.ShowDialog() == true ? dlg.SelectedCompany : null;
+        }
+
+        private void ReplaceCompany(Company existing, Company incoming)
+        {
+            // Propiedades simples
+            existing.Name = incoming.Name;
+            existing.Description = incoming.Description;
+
+            // Reemplazo limpio de proyectos
+            existing.Projects.Clear();
+            foreach (var p in incoming.Projects)
+                existing.Projects.Add(p);
+
+            // (Opcional) auto-expandir
+            existing.IsExpanded = true;
+            foreach (var p in existing.Projects) p.IsExpanded = true;
+        }
+
+        private void ReplaceProject(Company parent, Project existingProject, Project incomingProject)
+        {
+            // Sacamos el proyecto existente y metemos el nuevo
+            var index = parent.Projects.IndexOf(existingProject);
+            if (index >= 0) parent.Projects.RemoveAt(index);
+
+            // (Opcional) auto-expandir el nuevo
+            incomingProject.IsExpanded = true;
+
+            // Insertar en la misma posición si se puede, si no, al final
+            if (index >= 0 && index <= parent.Projects.Count)
+                parent.Projects.Insert(index, incomingProject);
+            else
+                parent.Projects.Add(incomingProject);
+        }
 
         private string GetSuggestedFileName(ExportScope scope, Company? company, Project? project)
         {
@@ -465,10 +519,10 @@ namespace ConcentradoKPI.App.ViewModels
             return scope switch
             {
                 ExportScope.Project when company != null && project != null =>
-                    $"{San(company.Name)} - {San(project.Name)} - Completo - {today}.kpi.json",
+                    $"{San(company.Name)} - {San(project.Name)} - {today}.kpi.json",
                 ExportScope.Company when company != null =>
-                    $"{San(company.Name)} - Completo - {today}.kpi.json",
-                _ => $"ConcentradoKPI - Completo - {today}.kpi.json"
+                    $"{San(company.Name)} - {today}.kpi.json",
+                _ => $"ConcentradoKPI - {today}.kpi.json"
             };
         }
 
@@ -488,117 +542,147 @@ namespace ConcentradoKPI.App.ViewModels
             var imported = await _storage.ImportAsync(ofd.FileName);
             if (imported is null || imported.Companies.Count == 0)
             {
-                MessageBox.Show("Archivo vacío o inválido.", "Importar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Archivo vacío o inválido.", "Importar",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // ¿Reemplazar todo, combinar o cancelar?
-            var res = MessageBox.Show(
-                "¿Cómo desea aplicar los datos?\n\nSí = Reemplazar todo\nNo = Combinar (agrega/actualiza)\nCancelar = Abortar",
-                "Importar",
-                MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-
-            if (res == MessageBoxResult.Cancel) return;
-
-            if (res == MessageBoxResult.Yes)
+            // --- Sin "Reemplazar todo". Vamos compañía por compañía.
+            foreach (var incCompany in imported.Companies)
             {
-                // REEMPLAZAR TODO
-                Companies.Clear();
-                foreach (var c in imported.Companies) Companies.Add(c);
-                ExportCommand?.RaiseCanExecuteChanged();
-            }
-            else
-            {
-                // COMBINAR: por nombre de compañía/proyecto/semana (semana = WeekNumber)
-                foreach (var c in imported.Companies)
+                var existingCompany = Companies.FirstOrDefault(x => x.Name == incCompany.Name);
+
+                if (existingCompany == null)
                 {
-                    var existingCompany = Companies.FirstOrDefault(x => x.Name == c.Name);
-                    if (existingCompany == null)
+                    // Nueva compañía → se agrega tal cual
+                    Companies.Add(incCompany);
+                    continue;
+                }
+
+                // Ya existe esa compañía → preguntar qué hacer
+                var ansCompany = MessageBox.Show(
+                    $"La compañía '{incCompany.Name}' ya existe.\n\n" +
+                    "Sí = REEMPLAZAR toda la compañía\n" +
+                    "No = Mantener compañía y resolver por PROYECTO\n" +
+                    "Cancelar = AbortAR importación",
+                    "Importar - Conflicto de compañía",
+                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+
+                if (ansCompany == MessageBoxResult.Cancel) return;
+
+                if (ansCompany == MessageBoxResult.Yes)
+                {
+                    // Reemplazar compañía completa
+                    ReplaceCompany(existingCompany, incCompany);
+                    continue;
+                }
+
+                // No → Resolver por PROYECTO
+                foreach (var incProject in incCompany.Projects)
+                {
+                    var existingProject = existingCompany.Projects
+                                                         .FirstOrDefault(p => p.Name == incProject.Name);
+                    if (existingProject == null)
                     {
-                        Companies.Add(c);
+                        existingCompany.Projects.Add(incProject);
                         continue;
                     }
 
-                    foreach (var p in c.Projects)
+                    // Ya existe ese proyecto → preguntar
+                    var ansProject = MessageBox.Show(
+                        $"En compañía '{existingCompany.Name}', el proyecto '{incProject.Name}' ya existe.\n\n" +
+                        "Sí = REEMPLAZAR todo el proyecto\n" +
+                        "No = Mantener proyecto y resolver por SEMANA\n" +
+                        "Cancelar = Abortar importación",
+                        "Importar - Conflicto de proyecto",
+                        MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+
+                    if (ansProject == MessageBoxResult.Cancel) return;
+
+                    if (ansProject == MessageBoxResult.Yes)
                     {
-                        var existingProject = existingCompany.Projects.FirstOrDefault(x => x.Name == p.Name);
-                        if (existingProject == null)
+                        // Reemplazar proyecto completo
+                        ReplaceProject(existingCompany, existingProject, incProject);
+                        continue;
+                    }
+
+                    // No → Resolver por SEMANA (tu lógica existente por semana)
+                    foreach (var w in incProject.Weeks)
+                    {
+                        var exWeek = existingProject.Weeks.FirstOrDefault(x => x.WeekNumber == w.WeekNumber);
+                        if (exWeek == null)
                         {
-                            existingCompany.Projects.Add(p);
-                            continue;
+                            existingProject.Weeks.Add(w);
                         }
-
-                        foreach (var w in p.Weeks)
+                        else
                         {
-                            var exWeek = existingProject.Weeks.FirstOrDefault(x => x.WeekNumber == w.WeekNumber);
-                            if (exWeek == null)
-                            {
-                                existingProject.Weeks.Add(w);
-                            }
-                            else
-                            {
-                                // Preguntar por semanas en conflicto (reemplazar una por una)
-                                var ans = MessageBox.Show(
-                                    $"La {w} ya existe en '{existingProject.Name}'.\n\nSí = Reemplazar esta semana\nNo = Mantener la existente\nCancelar = Abortar importación",
-                                    "Conflicto de semana",
-                                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                            var ansWeek = MessageBox.Show(
+                                $"La {w} ya existe en '{existingProject.Name}'.\n\n" +
+                                "Sí = Reemplazar esta semana\n" +
+                                "No = Mantener la existente\n" +
+                                "Cancelar = Abortar importación",
+                                "Importar - Conflicto de semana",
+                                MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
-                                if (ans == MessageBoxResult.Cancel) return;
-                                if (ans == MessageBoxResult.Yes)
+                            if (ansWeek == MessageBoxResult.Cancel) return;
+                            if (ansWeek == MessageBoxResult.Yes)
+                            {
+                                // Reemplazar contenido de esa semana (a prueba de null)
+                                exWeek.WeekStart = w.WeekStart;
+                                exWeek.WeekEnd = w.WeekEnd;
+
+                                exWeek.Kpis = w.Kpis?.Select(k => new KpiValue
                                 {
-                                    // Reemplazar contenido (a prueba de null)
-                                    exWeek.WeekStart = w.WeekStart;
-                                    exWeek.WeekEnd = w.WeekEnd;
+                                    Name = k.Name,
+                                    Value = k.Value,
+                                    Unit = k.Unit
+                                }).ToList() ?? new();
 
-                                    exWeek.Kpis = w.Kpis?.Select(k => new KpiValue
-                                    {
-                                        Name = k.Name,
-                                        Value = k.Value,
-                                        Unit = k.Unit
-                                    }).ToList() ?? new();
+                                exWeek.Pyramid = w.Pyramid != null ? new SafetyPyramid
+                                {
+                                    UnsafeActs = w.Pyramid.UnsafeActs,
+                                    UnsafeConditions = w.Pyramid.UnsafeConditions,
+                                    NearMisses = w.Pyramid.NearMisses,
+                                    FirstAids = w.Pyramid.FirstAids,
+                                    MedicalTreatments = w.Pyramid.MedicalTreatments,
+                                    LostTimeInjuries = w.Pyramid.LostTimeInjuries,
+                                    Fatalities = w.Pyramid.Fatalities,
+                                    FindingsCorrected = w.Pyramid.FindingsCorrected,
+                                    FindingsTotal = w.Pyramid.FindingsTotal,
+                                    TrainingsCompleted = w.Pyramid.TrainingsCompleted,
+                                    TrainingsPlanned = w.Pyramid.TrainingsPlanned,
+                                    AuditsCompleted = w.Pyramid.AuditsCompleted,
+                                    AuditsPlanned = w.Pyramid.AuditsPlanned
+                                } : new SafetyPyramid();
 
-                                    if (w.Pyramid != null)
-                                    {
-                                        exWeek.Pyramid = new SafetyPyramid
-                                        {
-                                            UnsafeActs = w.Pyramid.UnsafeActs,
-                                            UnsafeConditions = w.Pyramid.UnsafeConditions,
-                                            NearMisses = w.Pyramid.NearMisses,
-                                            FirstAids = w.Pyramid.FirstAids,
-                                            MedicalTreatments = w.Pyramid.MedicalTreatments,
-                                            LostTimeInjuries = w.Pyramid.LostTimeInjuries,
-                                            Fatalities = w.Pyramid.Fatalities,
-                                            FindingsCorrected = w.Pyramid.FindingsCorrected,
-                                            FindingsTotal = w.Pyramid.FindingsTotal,
-                                            TrainingsCompleted = w.Pyramid.TrainingsCompleted,
-                                            TrainingsPlanned = w.Pyramid.TrainingsPlanned,
-                                            AuditsCompleted = w.Pyramid.AuditsCompleted,
-                                            AuditsPlanned = w.Pyramid.AuditsPlanned
-                                        };
-                                    }
-                                    else
-                                    {
-                                        exWeek.Pyramid = new SafetyPyramid();
-                                    }
+                                exWeek.Tables = w.Tables?.Select(t => new TableData
+                                {
+                                    Name = t.Name,
+                                    Columns = t.Columns?.ToList() ?? new(),
+                                    Rows = t.Rows?.Select(r => r.ToList()).ToList() ?? new()
+                                }).ToList() ?? new();
 
-                                    exWeek.Tables = w.Tables?.Select(t => new TableData
-                                    {
-                                        Name = t.Name,
-                                        Columns = t.Columns?.ToList() ?? new(),
-                                        Rows = t.Rows?.Select(r => r.ToList()).ToList() ?? new()
-                                    }).ToList() ?? new();
-
-                                    exWeek.Notes = w.Notes;
-                                }
-                                // Si No: no hacemos nada (se mantiene la existente)
+                                exWeek.Notes = w.Notes;
                             }
                         }
                     }
                 }
             }
+
+            // Auto-expandir todo lo que quedó después de importar
+            foreach (var c in Companies)
+            {
+                c.IsExpanded = true;
+                foreach (var p in c.Projects) p.IsExpanded = true;
+            }
+
             ExportCommand?.RaiseCanExecuteChanged();
-            // Limpia selección y mensaje
-            SelectedCompany = null; SelectedProject = null; SelectedWeek = null;
+
+            // Selección amigable (opcional)
+            SelectedCompany = Companies.FirstOrDefault();
+            SelectedProject = SelectedCompany?.Projects.FirstOrDefault();
+            SelectedWeek = SelectedProject?.Weeks.FirstOrDefault();
+
             Mensaje = $"Importación aplicada ({imported.Companies.Count} compañías en archivo).";
             OnPropertyChanged(nameof(Mensaje));
         }

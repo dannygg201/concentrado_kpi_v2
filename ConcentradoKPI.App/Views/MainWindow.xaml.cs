@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using ConcentradoKPI.App.ViewModels;
 using ConcentradoKPI.App.Models;
 using System.Windows.Input;
+using System;
 
 
 namespace ConcentradoKPI.App.Views
@@ -12,8 +13,27 @@ namespace ConcentradoKPI.App.Views
         public MainWindow()
         {
             InitializeComponent();
+            Loaded += MainWindow_Loaded;
         }
-
+        private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                // Evita doble suscripción
+                vm.OpenPersonalRequested -= Vm_OpenPersonalRequested;
+                vm.OpenPersonalRequested += Vm_OpenPersonalRequested;
+            }
+        }
+        // 🔹 Abre la nueva ventana de personal vigente
+        private void Vm_OpenPersonalRequested(Company company, Project project, WeekData week)
+        {
+            var win = new PersonalVigenteWindow
+            {
+                Owner = this,
+                DataContext = new PersonalVigenteViewModel(company, project, week)
+            };
+            win.Show(); // o ShowDialog() si prefieres modal
+        }
         private void CompanyMenu_Opened(object sender, RoutedEventArgs e)
         {
             if (DataContext is not MainViewModel vm) return;

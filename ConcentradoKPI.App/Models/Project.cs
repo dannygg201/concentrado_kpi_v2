@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization; // 👈
 
 namespace ConcentradoKPI.App.Models
 {
@@ -20,9 +21,12 @@ namespace ConcentradoKPI.App.Models
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 
-        public ObservableCollection<WeekData> Weeks { get; } = new();
+        // 👇 IMPORTANTE: ahora con set;
+        public ObservableCollection<WeekData> Weeks { get; set; } = new();
 
+        [JsonIgnore]
         private bool _isExpanded;
+        [JsonIgnore]
         public bool IsExpanded
         {
             get => _isExpanded;
