@@ -1,6 +1,11 @@
 ﻿<Application x:Class="ConcentradoKPI.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnMainWindowClose">
     <Application.Resources>
+        <!-- Implicit style: TODAS las ventanas arrancan maximized -->
+        <Style TargetType="Window">
+            <Setter Property="WindowState" Value="Maximized"/>
+        </Style>
     </Application.Resources>
 </Application>

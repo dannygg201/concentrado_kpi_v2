@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:ConcentradoKPI.App.ViewModels"
         xmlns:models="clr-namespace:ConcentradoKPI.App.Models"
-        Title="Concentrado KPI" Width="1000" Height="650"
+        Title="Smart KPI" Width="1000" Height="650"
         WindowStartupLocation="CenterScreen">
     <Window.DataContext>
         <vm:MainViewModel/>
@@ -21,7 +21,7 @@
 
         <!-- TOP BAR -->
         <DockPanel Grid.Row="0" Grid.ColumnSpan="2" Background="#11254a" LastChildFill="False">
-            <TextBlock Text="Concentrado KPI" Foreground="White" Margin="16,0"
+            <TextBlock Text="Smart KPI" Foreground="White" Margin="16,0"
                        FontSize="20" FontWeight="Bold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
             <StackPanel Orientation="Horizontal" Margin="8" DockPanel.Dock="Right">
                 <Button Content="Abrir" Margin="4" Padding="12,6"

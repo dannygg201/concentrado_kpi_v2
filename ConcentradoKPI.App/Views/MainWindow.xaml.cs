@@ -1,9 +1,12 @@
 ﻿using System.Windows;
+using System.Linq;
 using System.Windows.Controls;
 using ConcentradoKPI.App.ViewModels;
 using ConcentradoKPI.App.Models;
 using System.Windows.Input;
+using System.Collections.Generic;
 using System;
+using ConcentradoKPI.App.Views;
 
 
 namespace ConcentradoKPI.App.Views
@@ -14,7 +17,23 @@ namespace ConcentradoKPI.App.Views
         {
             InitializeComponent();
             Loaded += MainWindow_Loaded;
+
         }
+        // ===== Registro de ventanas abiertas por clave (empresa|proyecto|semana) =====
+        private readonly Dictionary<string, PersonalVigenteWindow> _openWindows = new();
+       
+        private static string MakeKey(Company c, Project p, WeekData w)
+     => $"{c.Name}|{p.Name}|{w.WeekNumber}";
+
+
+        private static void BringToFront(Window w)
+        {
+            if (w.WindowState == WindowState.Minimized) w.WindowState = WindowState.Normal;
+            // Truco para forzar foco
+            w.Topmost = true; w.Topmost = false;
+            w.Activate(); w.Focus();
+        }
+
         private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm)
@@ -27,13 +46,42 @@ namespace ConcentradoKPI.App.Views
         // 🔹 Abre la nueva ventana de personal vigente
         private void Vm_OpenPersonalRequested(Company company, Project project, WeekData week)
         {
+            var key = MakeKey(company, project, week);
+
+            // Si ya está abierta, solo traemos al frente
+            if (_openWindows.TryGetValue(key, out var existing) && existing.IsLoaded)
+            {
+                BringToFront(existing);
+                return;
+            }
+
+            // Crea una nueva ventana modeless
+            var vm = new PersonalVigenteViewModel(company, project, week);
             var win = new PersonalVigenteWindow
             {
+                // Si quieres que se minimice junto con el Main, deja Owner = this;
+                // Si la quieres totalmente independiente en la barra de tareas, pon Owner = null;
                 Owner = this,
-                DataContext = new PersonalVigenteViewModel(company, project, week)
+                ShowInTaskbar = true,
+                DataContext = vm,
+                Title = $"Personal vigente - {company.Name} · {project.Name} · Semana {week.WeekNumber}"
             };
-            win.Show(); // o ShowDialog() si prefieres modal
+
+            // Guarda en el registro
+            _openWindows[key] = win;
+
+            // Limpieza al cerrar
+            win.Closed += (_, __) =>
+            {
+                _openWindows.Remove(key);
+                // Si tu VM usa timers/streams, dispón recursos:
+                if (vm is IDisposable d) d.Dispose();
+            };
+
+            win.Show();         // modeless
+            BringToFront(win);  // visible y enfocada
         }
+
         private void CompanyMenu_Opened(object sender, RoutedEventArgs e)
         {
             if (DataContext is not MainViewModel vm) return;

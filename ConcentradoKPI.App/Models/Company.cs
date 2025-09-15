@@ -16,6 +16,14 @@ namespace ConcentradoKPI.App.Models
 
         public string? Description { get; set; }
 
+        public string? ResponsibleName { get; set; }           // Responsable de la obra/servicio
+        public string? ImssRegistration { get; set; }          // Registro patronal IMSS
+        public DateTime? HeaderDate { get; set; }              // Fecha del reporte/relación
+        public string? Rfc { get; set; }                       // RFC de la compañía
+        public string? ProviderNumber { get; set; }            // Número de proveedor
+        public string? LegalAddress { get; set; }              // Dirección legal
+        public string? SupplierNumber { get; set; }
+
         // 👇 IMPORTANTE: ahora con set;
         public ObservableCollection<Project> Projects { get; set; } = new();
 
