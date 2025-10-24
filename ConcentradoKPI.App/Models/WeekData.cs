@@ -26,5 +26,8 @@ namespace ConcentradoKPI.App.Models
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? p = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
+        // Guarda todo lo capturado en la vista Personal Vigente para esta semana
+        public PersonalVigenteDocument? PersonalVigente { get; set; }
+
     }
 }

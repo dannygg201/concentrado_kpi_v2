@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:ConcentradoKPI.App.ViewModels"
         xmlns:models="clr-namespace:ConcentradoKPI.App.Models"
-        Title="Smart KPI" Width="1000" Height="650"
+        Title="Smart KPI" Width="1100" Height="700"
         WindowStartupLocation="CenterScreen">
     <Window.DataContext>
         <vm:MainViewModel/>

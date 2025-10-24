@@ -9,10 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Assets\piramide_limpia.png" />
     <None Remove="Assets\SplashScreen.png" />
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\piramide_limpia.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Assets\SplashScreen.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

@@ -1,0 +1,326 @@
+﻿<Window x:Class="ConcentradoKPI.App.Views.PiramideEditDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Editar datos de la pirámide"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Width="620" Height="620"
+        Background="#F7F9FC">
+
+    <Window.Resources>
+        <!-- Paleta -->
+        <SolidColorBrush x:Key="Col_Navy1" Color="#021A4B"/>
+        <SolidColorBrush x:Key="Col_Navy2" Color="#012060"/>
+        <SolidColorBrush x:Key="Col_Navy3" Color="#071B3C"/>
+        <SolidColorBrush x:Key="Col_Blue"  Color="#0071C1"/>
+        <SolidColorBrush x:Key="Col_Red1"  Color="#FE0000"/>
+        <SolidColorBrush x:Key="Col_Red2"  Color="#C00000"/>
+        <SolidColorBrush x:Key="Col_Black" Color="#000000"/>
+
+        <!-- Label/Texto sobre fondo oscuro -->
+        <Style x:Key="LabelOnDark" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <!-- Tarjeta de sección -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="8"/>
+        </Style>
+
+        <!-- GroupBox con header coloreable y texto blanco -->
+        <Style x:Key="ColoredGroupBox" TargetType="GroupBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Grid>
+                            <!-- Fondo general de la sección -->
+                            <Border Background="{TemplateBinding Background}" CornerRadius="10"/>
+                            <Grid Margin="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Header -->
+                                <Border Grid.Row="0" CornerRadius="8" Padding="8,4" Margin="0,0,0,8"
+                    Background="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ContentPresenter ContentSource="Header"
+                                TextElement.Foreground="White"
+                                TextElement.FontWeight="Bold"/>
+                                </Border>
+
+                                <!-- Contenido -->
+                                <ContentPresenter Grid.Row="1"/>
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+
+    <Border CornerRadius="12" Padding="16" Background="White">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Captura de datos de la Pirámide"
+                       FontSize="20" FontWeight="SemiBold" Margin="4,0,4,12"/>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <!-- ===== Generales / Encabezado ===== -->
+                    <GroupBox Header="Generales" Margin="0,0,0,12">
+                        <UniformGrid Columns="2" Margin="8,6,8,8">
+                            <StackPanel Margin="6">
+                                <TextBlock Text="Without LTI's" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.WithoutLTIs, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                <TextBlock Text="Last Record (texto/fecha)" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.LastRecord, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </UniformGrid>
+                    </GroupBox>
+
+                    <!-- ===== Tarjetas laterales ===== -->
+                    <GroupBox Header="Tarjetas laterales" Margin="0,0,0,12">
+                        <UniformGrid Columns="2" Margin="8,6,8,8">
+                            <StackPanel Margin="6">
+                                <TextBlock Text="Compañías" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.Companias, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                <TextBlock Text="No. Colaboradores" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.Colaboradores, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                <TextBlock Text="No. Técnicos de Seguridad" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.TecnicosSeguridad, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                <TextBlock Text="Horas trabajadas" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.HorasTrabajadas, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                        </UniformGrid>
+                    </GroupBox>
+
+                    <!-- ===== Base (Programa/Territorios/Efectividad) ===== -->
+                    <GroupBox Header="Base (Avance al programa / Territorios / Efectividad)" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Navy1}">
+                        <UniformGrid Columns="3" Margin="8,6,8,8">
+                                                        
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Avance al programa (%)" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.AvanceProgramaPct, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Territorios en rojo" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.TerritoriosRojo, UpdateSourceTrigger=PropertyChanged}"
+                                    PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Territorios en verde" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.TerritoriosVerde, UpdateSourceTrigger=PropertyChanged}"
+                                    PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Efectividad" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.Efectividad, UpdateSourceTrigger=PropertyChanged}"
+                                        PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                    <!-- ===== Segundo nivel (Comportamientos / Condiciones) ===== -->
+                    <GroupBox Header="Base (Comportamientos / Condiciones)" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Navy2}">
+                            <UniformGrid Columns="3" Margin="8,6,8,8">
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="Seguros" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.Seguros, UpdateSourceTrigger=PropertyChanged}"
+                                        PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="Inseguros" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.Inseguros, UpdateSourceTrigger=PropertyChanged}"
+                                        PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="Condiciones detectadas" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.Detectadas, UpdateSourceTrigger=PropertyChanged}"
+                                        PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="Condiciones corregidas" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.Corregidas, UpdateSourceTrigger=PropertyChanged}"
+                                        PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="Avance (condiciones)" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.Avance, UpdateSourceTrigger=PropertyChanged}"
+                                        PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+
+                            </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                    <!-- ===== Centro (Precursores / Potenciales) ===== -->
+                    <GroupBox Header="Centro (Precursores / Potenciales)" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Navy3}">
+                        <UniformGrid Columns="4" Margin="8,6,8,8">
+
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Precursores 1" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.Precursores1, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Precursores 2" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.Precursores2, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Precursores 3" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.Precursores3, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="Potenciales" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.Potenciales, UpdateSourceTrigger=PropertyChanged}"
+                                          PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="FAI Central" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.FAI2, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="MTI Central" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.MTI2, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="MDI Central" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.MDI2, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="LTI Central" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Values.LTI2, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                    <!-- ===== Incidentes sin lesión ===== -->
+                    <GroupBox Header="Incidentes sin lesión" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Blue}">
+                        <UniformGrid Columns="2" Margin="8,6,8,8">
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Incidentes sin lesión (izq)" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.IncidentesSinLesion1, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="Incidentes sin lesión (der)" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.IncidentesSinLesion2, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                    <!-- ===== Niveles: FAI / MTI / MDI / LTI ===== -->
+                    <GroupBox Header="FAI" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Red1}">
+                        <UniformGrid Columns="3" Margin="8,6,8,8">
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="FAI Izq" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.FAI1, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="FAI Der" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.FAI3, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                    <GroupBox Header="MTI" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Red2}">
+                        <UniformGrid Columns="3" Margin="8,6,8,8">
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="MTI Izq" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.MTI1, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="MTI Der" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.MTI3, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                    <GroupBox Header="MDI" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Red2}">
+                            <UniformGrid Columns="3" Margin="8,6,8,8">
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="MDI Izq" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.MDI1, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="MDI Izq" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.MDI3, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                    <GroupBox Header="LTI" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Background="{StaticResource Col_Black}">
+                            <UniformGrid Columns="3" Margin="8,6,8,8">
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="LTI Izq" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.LTI1, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                            
+                            <StackPanel Margin="6">
+                                    <TextBlock Text="LTI Der" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Values.LTI3, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        </Border>
+                    </GroupBox>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancelar" Width="120" Click="Cancel_Click"/>
+                <Button Content="Guardar" Width="120" Margin="8,0,0,0"
+            Background="#11254a" Foreground="White" Click="Save_Click"/>
+                
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

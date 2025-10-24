@@ -1,0 +1,277 @@
+﻿<Window x:Class="ConcentradoKPI.App.Views.InformeSemanalCmaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ConcentradoKPI.App.ViewModels"
+        xmlns:controls="clr-namespace:ConcentradoKPI.App.Views.Controls"
+        Title="Informe Semanal CMA" Width="1180" Height="720"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- Shell (si usas NavBar) -->
+        <vm:ShellViewModel x:Key="Shell"/>
+
+        <!-- Paleta simple -->
+        <SolidColorBrush x:Key="Col_Navy"   Color="#021A4B"/>
+        <SolidColorBrush x:Key="Col_Card"   Color="White"/>
+        <SolidColorBrush x:Key="Col_Border" Color="#E5E8EC"/>
+        <SolidColorBrush x:Key="Col_Pos"    Color="#22C55E"/>
+        <SolidColorBrush x:Key="Col_Neg"    Color="#EF4444"/>
+        <SolidColorBrush x:Key="Col_Muted"  Color="#6B7280"/>
+
+        <!-- Card base -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Col_Card}"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Col_Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="10"/>
+        </Style>
+
+        <!-- Label -->
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Col_Muted}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,8,0,4"/>
+        </Style>
+
+        <!-- Input redondeado -->
+        <Style x:Key="RoundedTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" CornerRadius="8"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Chip -->
+        <Style x:Key="Chip" TargetType="Border">
+            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,6,10,0"/>
+        </Style>
+
+        <!-- ===== Tarjeta EDITABLE (se liga al item) ===== -->
+        <DataTemplate x:Key="CardEditableTemplate">
+            <Border Style="{StaticResource Card}" MinWidth="620">
+                <StackPanel>
+                    <TextBlock Text="Contratista" FontSize="18" FontWeight="Black" Margin="0,0,0,12"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Nombre"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Téc./Prof. Seguridad"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding TecnicosSeguridad, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Colaboradores"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding Colaboradores, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Horas trabajadas"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding HorasTrabajadas, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Incidentes"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding Incidentes, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Prec. SIF - Comportamiento"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding PrecursoresSifComportamiento, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Prec. SIF - Condición"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding PrecursoresSifCondicion, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Total semanal (auto)"/>
+                            <TextBlock FontWeight="Bold" FontSize="14" Text="{Binding TotalSemanal}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Especialidad"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding Especialidad, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="LTI"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding LTI, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="MDI"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding MDI, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="MTI"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding MTI, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="TRI"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding TRI, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="FAI"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding FAI, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Actos seguros"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding ActosSeguros, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Actos inseguros"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding ActosInseguros, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <Border Style="{StaticResource Chip}" Background="#ECFDF5" BorderBrush="#BBF7D0">
+                            <TextBlock Text="{Binding ActosSeguros, StringFormat=Seguros: {0}}"
+                     Foreground="{StaticResource Col_Pos}" FontWeight="SemiBold"/>
+                        </Border>
+                        <Border Style="{StaticResource Chip}" Background="#FEF2F2" BorderBrush="#FECACA">
+                            <TextBlock Text="{Binding ActosInseguros, StringFormat=Inseguros: {0}}"
+                     Foreground="{StaticResource Col_Neg}" FontWeight="SemiBold"/>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,8,0,0">
+                        <DockPanel LastChildFill="True">
+                            <TextBlock Text="% Avance" Style="{StaticResource FieldLabel}" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding PorcentajeAvance, StringFormat={}{0:P0}}"
+                     FontWeight="Bold" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <ProgressBar Minimum="0" Maximum="1"
+                            Value="{Binding PorcentajeAvance, Mode=OneWay}" Height="10"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- ===== Tarjeta TOTALES (solo lectura, ligada al item) ===== -->
+        <DataTemplate x:Key="CardTotalesTemplate">
+            <Border Style="{StaticResource Card}" Width="620" Background="#FBFCFE" BorderBrush="#E0E6F1">
+                <StackPanel>
+                    <TextBlock Text="Totales" FontWeight="Black" FontSize="16"/>
+                    <Separator Margin="0,8,0,10"/>
+                    <UniformGrid Rows="8" Columns="2" Margin="0,0,0,6">
+                        <TextBlock Text="Téc. Seguridad"/>
+                        <TextBlock Text="{Binding TecnicosSeguridad}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Colaboradores"/>
+                        <TextBlock Text="{Binding Colaboradores}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Horas trabajadas"/>
+                        <TextBlock Text="{Binding HorasTrabajadas}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Incidentes"/>
+                        <TextBlock Text="{Binding Incidentes}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Prec. SIF - Comp."/>
+                        <TextBlock Text="{Binding PrecursoresSifComportamiento}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Prec. SIF - Cond."/>
+                        <TextBlock Text="{Binding PrecursoresSifCondicion}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Actos (S / I)"/>
+                        <TextBlock FontWeight="Bold" HorizontalAlignment="Right">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0} / {1}">
+                                    <Binding Path="ActosSeguros"/>
+                                    <Binding Path="ActosInseguros"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+
+                        <TextBlock Text="Total semanal"/>
+                        <TextBlock Text="{Binding TotalSemanal}" FontWeight="Bold" HorizontalAlignment="Right"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- NAV superior (si lo usas) -->
+        <controls:NavBar Grid.Row="0" DataContext="{StaticResource Shell}"/>
+
+        <!-- CONTENIDO -->
+        <Grid Grid.Row="1" Background="#F6F7FB">
+            <Grid Margin="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Encabezado -->
+                <Border Background="{StaticResource Col_Navy}" CornerRadius="10" Padding="16" Margin="0,0,0,10">
+                    <DockPanel>
+                        <TextBlock Text="🦁" FontSize="22" Margin="0,0,10,0" Foreground="White"/>
+                        <StackPanel>
+                            <TextBlock Text="INFORME SEMANAL · CMA" Foreground="White" FontSize="18" FontWeight="Black"/>
+                            <TextBlock Text="{Binding EncabezadoDescripcion}" Foreground="#D9E3F0" FontSize="12"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- TARJETAS (siempre 2) -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Cards}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <!-- Elegir plantilla por IsTotal -->
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ContentControl>
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="ContentTemplate" Value="{StaticResource CardEditableTemplate}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTotal}" Value="True">
+                                                    <Setter Property="ContentTemplate" Value="{StaticResource CardTotalesTemplate}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                    <ContentControl.Content>
+                                        <Binding/>
+                                    </ContentControl.Content>
+                                </ContentControl>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

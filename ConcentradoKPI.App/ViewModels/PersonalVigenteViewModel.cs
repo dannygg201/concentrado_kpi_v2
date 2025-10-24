@@ -62,6 +62,8 @@ namespace ConcentradoKPI.App.ViewModels
             }
         }
 
+
+
         // Totales
         public int TotalHH => Personas.Sum(p => p.HHSemana);
 
@@ -119,31 +121,27 @@ namespace ConcentradoKPI.App.ViewModels
         public RelayCommand DeleteSelectedCommand { get; }
         public RelayCommand ClearFormCommand { get; }
 
-        public PersonalVigenteViewModel(Company company, Project project, WeekData week)
+        public PersonalVigenteViewModel(Company c, Project p, WeekData w)
         {
-            Company = company;
-            Project = project;
-            Week = week;
+            Company = c;
+            Project = p;
+            Week = w;
 
-            // Sugerencia inicial
-            RazonSocial = Company.Name;
+            var doc = w.PersonalVigente;
+            if (doc != null)
+            {
+                RazonSocial = doc.RazonSocial;
+                ResponsableObra = doc.ResponsableObra;
+                RegistroIMSS = doc.RegistroIMSS;
+                RFCCompania = doc.RFCCompania;
+                DireccionLegal = doc.DireccionLegal;
+                NumeroProveedor = doc.NumeroProveedor;
+                Fecha = doc.Fecha;
 
-            // Recalcular Total al cambiar filas
-            Personas.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalHH));
-
-            // Agregar solo cuando NO estás editando (SelectedPerson == null)
-            AddPersonCommand = new RelayCommand(
-            _ => AddPerson(),
-            _ => !string.IsNullOrWhiteSpace(NewNombre)
-                 && !string.IsNullOrWhiteSpace(NewAfiliacion)
-                 && !string.IsNullOrWhiteSpace(NewPuesto)
-                 && SelectedPerson == null);
-
-
-            ApplyEditCommand = new RelayCommand(_ => ApplyEdit(), _ => SelectedPerson != null);
-            DeleteSelectedCommand = new RelayCommand(_ => DeleteSelected(), _ => SelectedPerson != null);
-            ClearFormCommand = new RelayCommand(_ => ClearForm());
-
+                Personas.Clear();
+                foreach (var r in doc.Personal ?? Enumerable.Empty<PersonRow>())
+                    Personas.Add(r);
+            }
         }
 
         private void AddPerson()

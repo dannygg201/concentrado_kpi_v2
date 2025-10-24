@@ -1,0 +1,64 @@
+﻿<UserControl x:Class="ConcentradoKPI.App.Views.Controls.NavBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:ConcentradoKPI.App.Models"
+             xmlns:conv="clr-namespace:ConcentradoKPI.App.Converters"
+             Height="44" Background="#0B2C52">
+    <UserControl.Resources>
+        <conv:EqualsToCollapsedConverter x:Key="EqCollapsed"/>
+        <Style x:Key="NavBtn" TargetType="Button">
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#153B68"/>
+            <Setter Property="BorderBrush" Value="#1E4D89"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel LastChildFill="True">
+        <TextBlock Text="Concentrado KPI"
+                   Foreground="White" FontWeight="Bold"
+                   VerticalAlignment="Center" Margin="12,0" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="8,0">
+            <!-- OJO: DataContext = ShellViewModel, así que Binding va directo a CurrentView -->
+
+            <Button Style="{StaticResource NavBtn}" Content="Personal Vigente"
+                    Visibility="{Binding CurrentView,
+                                         Converter={StaticResource EqCollapsed},
+                                         ConverterParameter={x:Static models:AppView.PersonalVigente}}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="{x:Static models:AppView.PersonalVigente}"/>
+
+            <Button Style="{StaticResource NavBtn}" Content="Pirámide de Seguridad"
+                    Visibility="{Binding CurrentView,
+                                         Converter={StaticResource EqCollapsed},
+                                         ConverterParameter={x:Static models:AppView.PiramideSeguridad}}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="{x:Static models:AppView.PiramideSeguridad}"/>
+
+            <Button Style="{StaticResource NavBtn}" Content="Informe Semanal CMA"
+                    Visibility="{Binding CurrentView,
+                                         Converter={StaticResource EqCollapsed},
+                                         ConverterParameter={x:Static models:AppView.InformeSemanalCma}}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="{x:Static models:AppView.InformeSemanalCma}"/>
+
+            <Button Style="{StaticResource NavBtn}" Content="Precursor SIF"
+                    Visibility="{Binding CurrentView,
+                                         Converter={StaticResource EqCollapsed},
+                                         ConverterParameter={x:Static models:AppView.PrecursorSif}}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="{x:Static models:AppView.PrecursorSif}"/>
+
+            <Button Style="{StaticResource NavBtn}" Content="Incidentes"
+                    Visibility="{Binding CurrentView,
+                                         Converter={StaticResource EqCollapsed},
+                                         ConverterParameter={x:Static models:AppView.Incidentes}}"
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="{x:Static models:AppView.Incidentes}"/>
+        </StackPanel>
+    </DockPanel>
+</UserControl>

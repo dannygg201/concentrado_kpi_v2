@@ -19,6 +19,7 @@ namespace ConcentradoKPI.App.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         public ObservableCollection<Company> Companies { get; } = new();
+        public AppData App { get; private set; } = new AppData();
 
         private Company? _selectedCompany;
         public Company? SelectedCompany
@@ -79,7 +80,6 @@ namespace ConcentradoKPI.App.ViewModels
         }
 
         public string Mensaje { get; set; } = "Selecciona o crea compañías, proyectos y semanas.";
-        private readonly ProjectStorageService _storage = new();
 
         // Comandos
         public RelayCommand AddCompanyCommand { get; }
@@ -102,7 +102,7 @@ namespace ConcentradoKPI.App.ViewModels
         // Comando para abrir Personal Vigente (solo si hay semana seleccionada)
         public RelayCommand OpenPersonalCommand { get; }
 
-
+        public RelayCommand NewCommand { get; }
         public MainViewModel()
         {
          
@@ -120,6 +120,7 @@ namespace ConcentradoKPI.App.ViewModels
             DeleteCompanyCommand = new RelayCommand(_ => DeleteCompany(), _ => SelectedCompany != null);
             DeleteProjectCommand = new RelayCommand(_ => DeleteProject(), _ => SelectedProject != null);
             DeleteWeekCommand = new RelayCommand(_ => DeleteWeek(), _ => SelectedWeek != null);
+            NewCommand = new RelayCommand(_ => NewDocument());
 
             OpenPersonalCommand = new RelayCommand(
                 _ =>
@@ -132,8 +133,23 @@ namespace ConcentradoKPI.App.ViewModels
 
 
             RefreshCommandStates();
-        }
+       
 
+        }
+        private void NewDocument()
+        {
+            App = new AppData();
+            Companies.Clear();
+
+            // 🔑 sin ruta => Guardar pedirá ubicación
+            ProjectStorageService.Bind(App, path: null);
+
+            SelectedCompany = null;
+            SelectedProject = null;
+            SelectedWeek = null;
+            Mensaje = "Documento nuevo.";
+            OnPropertyChanged(nameof(Mensaje));
+        }
         private void RefreshCommandStates()
         {
             AddProjectCommand?.RaiseCanExecuteChanged();
@@ -148,6 +164,10 @@ namespace ConcentradoKPI.App.ViewModels
             DeleteWeekCommand?.RaiseCanExecuteChanged();
 
             ExportCommand?.RaiseCanExecuteChanged();
+
+            // Documento nuevo: datos vivos = App, sin ruta -> al dar Guardar pedirá ubicación
+            ProjectStorageService.Bind(App, path: null);
+
         }
 
         private void RefreshTree()
@@ -161,11 +181,26 @@ namespace ConcentradoKPI.App.ViewModels
         {
             var name = AskText("Nueva compañía", "Nombre de la compañía:", $"Compañía {Companies.Count + 1}");
             if (name == null) return;
+
+            bool creatingFirst = Companies.Count == 0;  // <- ¿es la PRIMERA compañía del documento?
+
             var company = new Company { Name = name };
+
+            // UI
             Companies.Add(company);
+
+            // Raíz que se serializa
+            App.Companies.Add(company);
+
+            // 🔑 Si es un documento NUEVO (primera compañía), asegúrate de que Guardar pida ruta
+            if (creatingFirst)
+                ProjectStorageService.Bind(App, path: null);
+
             SelectedCompany = company;
             ExportCommand?.RaiseCanExecuteChanged();
         }
+
+
 
         private void AddProject()
         {
@@ -278,16 +313,20 @@ namespace ConcentradoKPI.App.ViewModels
                 "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (res != MessageBoxResult.Yes) return;
 
+            // ❗ Quitar de la raíz del documento (lo que se serializa)
+            App.Companies.Remove(SelectedCompany);
+
+            // Quitar de la colección que ve el TreeView
             Companies.Remove(SelectedCompany);
 
-            // Limpia selección
+            // Limpiar selección
             SelectedCompany = null;
             SelectedProject = null;
             SelectedWeek = null;
 
-            // Puede cambiar el estado de Exportar
             ExportCommand?.RaiseCanExecuteChanged();
         }
+
 
 
         private void DeleteProject()
@@ -337,58 +376,39 @@ namespace ConcentradoKPI.App.ViewModels
         // ====== Exportar ======
         private async Task ExportAsync()
         {
-            // 1) Elegir compañía a exportar
-            var company = SelectedCompany;
-
-            // si no hay seleccionada o quieres forzar selección cuando haya más de una, pide al usuario
-            if (Companies.Count == 0)
+            // Sugerir nombre (si hay compañía seleccionada, úsala)
+            string Suggest()
             {
-                MessageBox.Show("No hay compañías para guardar.", "Guardar como",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                string San(string? s)
+                {
+                    if (string.IsNullOrWhiteSpace(s)) return "SinNombre";
+                    foreach (var ch in System.IO.Path.GetInvalidFileNameChars()) s = s.Replace(ch, '_');
+                    return s.Trim();
+                }
+                var companyName = SelectedCompany?.Name;
+                var today = DateTime.Now.ToString("yyyy-MM-dd");
+                return companyName != null
+                    ? $"{San(companyName)} - {today}.kpi.json"
+                    : $"ConcentradoKPI - {today}.kpi.json";
             }
 
-            if (company == null || Companies.Count > 1)
-            {
-                company = AskCompany(Companies, SelectedCompany);
-                if (company == null) return; // canceló
-            }
-
-            // 2) Construir AppData SOLO con esa compañía
-            var data = new AppData();
-            data.Companies.Add(company);
-
-            // 3) Sugerir nombre y preguntar sobrescritura si existe
             var sfd = new SaveFileDialog
             {
-                FileName = $"{San(company.Name)} - {DateTime.Now:yyyy-MM-dd}.kpi.json",
+                FileName = Suggest(),
                 Filter = "Concentrado KPI (*.kpi.json)|*.kpi.json|JSON (*.json)|*.json",
                 Title = "Guardar como"
             };
 
             if (sfd.ShowDialog() == true)
             {
-                if (System.IO.File.Exists(sfd.FileName))
-                {
-                    var overwrite = MessageBox.Show(
-                        "El archivo ya existe. ¿Deseas reemplazarlo?",
-                        "Guardar como",
-                        MessageBoxButton.YesNo, MessageBoxImage.Question);
-                    if (overwrite != MessageBoxResult.Yes) return;
-                }
+                // 👇 Guardamos la MISMA instancia que editas (App) y la dejamos anclada a esa ruta
+                await ProjectStorageService.SaveToAsync(sfd.FileName, App, bind: true);
 
-                await _storage.ExportAsync(sfd.FileName, data);
                 Mensaje = $"Guardado: {sfd.FileName}";
                 OnPropertyChanged(nameof(Mensaje));
             }
-
-            string San(string? s)
-            {
-                if (string.IsNullOrWhiteSpace(s)) return "SinNombre";
-                foreach (var ch in System.IO.Path.GetInvalidFileNameChars()) s = s.Replace(ch, '_');
-                return s.Trim();
-            }
         }
+
 
 
         private AppData BuildExportData(ExportScope scope, Company? company, Project? project)
@@ -449,7 +469,7 @@ namespace ConcentradoKPI.App.ViewModels
                                 {
                                     Name = t.Name,
                                     Columns = t.Columns?.ToList() ?? new(),
-                                    Rows = t.Rows?.Select(r => r.ToList()).ToList() ?? new()
+                                    Personas = t.Personas?.Select(r => r.ToList()).ToList() ?? new()
                                 }).ToList() ?? new(),
 
                                 Notes = w.Notes
@@ -539,7 +559,7 @@ namespace ConcentradoKPI.App.ViewModels
             };
             if (ofd.ShowDialog() != true) return;
 
-            var imported = await _storage.ImportAsync(ofd.FileName);
+            var imported = await ProjectStorageService.ImportAsync(ofd.FileName, bind: true);
             if (imported is null || imported.Companies.Count == 0)
             {
                 MessageBox.Show("Archivo vacío o inválido.", "Importar",
@@ -547,24 +567,22 @@ namespace ConcentradoKPI.App.ViewModels
                 return;
             }
 
-            // --- Sin "Reemplazar todo". Vamos compañía por compañía.
+            // ====== TU BLOQUE DE MEZCLA/RESOLUCIÓN DE CONFLICTOS ======
             foreach (var incCompany in imported.Companies)
             {
                 var existingCompany = Companies.FirstOrDefault(x => x.Name == incCompany.Name);
 
                 if (existingCompany == null)
                 {
-                    // Nueva compañía → se agrega tal cual
                     Companies.Add(incCompany);
                     continue;
                 }
 
-                // Ya existe esa compañía → preguntar qué hacer
                 var ansCompany = MessageBox.Show(
                     $"La compañía '{incCompany.Name}' ya existe.\n\n" +
                     "Sí = REEMPLAZAR toda la compañía\n" +
                     "No = Mantener compañía y resolver por PROYECTO\n" +
-                    "Cancelar = AbortAR importación",
+                    "Cancelar = Abortar importación",
                     "Importar - Conflicto de compañía",
                     MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
@@ -572,23 +590,19 @@ namespace ConcentradoKPI.App.ViewModels
 
                 if (ansCompany == MessageBoxResult.Yes)
                 {
-                    // Reemplazar compañía completa
                     ReplaceCompany(existingCompany, incCompany);
                     continue;
                 }
 
-                // No → Resolver por PROYECTO
                 foreach (var incProject in incCompany.Projects)
                 {
-                    var existingProject = existingCompany.Projects
-                                                         .FirstOrDefault(p => p.Name == incProject.Name);
+                    var existingProject = existingCompany.Projects.FirstOrDefault(p => p.Name == incProject.Name);
                     if (existingProject == null)
                     {
                         existingCompany.Projects.Add(incProject);
                         continue;
                     }
 
-                    // Ya existe ese proyecto → preguntar
                     var ansProject = MessageBox.Show(
                         $"En compañía '{existingCompany.Name}', el proyecto '{incProject.Name}' ya existe.\n\n" +
                         "Sí = REEMPLAZAR todo el proyecto\n" +
@@ -601,12 +615,10 @@ namespace ConcentradoKPI.App.ViewModels
 
                     if (ansProject == MessageBoxResult.Yes)
                     {
-                        // Reemplazar proyecto completo
                         ReplaceProject(existingCompany, existingProject, incProject);
                         continue;
                     }
 
-                    // No → Resolver por SEMANA (tu lógica existente por semana)
                     foreach (var w in incProject.Weeks)
                     {
                         var exWeek = existingProject.Weeks.FirstOrDefault(x => x.WeekNumber == w.WeekNumber);
@@ -627,7 +639,6 @@ namespace ConcentradoKPI.App.ViewModels
                             if (ansWeek == MessageBoxResult.Cancel) return;
                             if (ansWeek == MessageBoxResult.Yes)
                             {
-                                // Reemplazar contenido de esa semana (a prueba de null)
                                 exWeek.WeekStart = w.WeekStart;
                                 exWeek.WeekEnd = w.WeekEnd;
 
@@ -659,7 +670,7 @@ namespace ConcentradoKPI.App.ViewModels
                                 {
                                     Name = t.Name,
                                     Columns = t.Columns?.ToList() ?? new(),
-                                    Rows = t.Rows?.Select(r => r.ToList()).ToList() ?? new()
+                                    Personas = t.Personas?.Select(r => r.ToList()).ToList() ?? new()
                                 }).ToList() ?? new();
 
                                 exWeek.Notes = w.Notes;
@@ -669,7 +680,15 @@ namespace ConcentradoKPI.App.ViewModels
                 }
             }
 
-            // Auto-expandir todo lo que quedó después de importar
+            // ⬇️ Sincroniza App con lo que quedó en Companies (para que Guardar serialice ESTA instancia)
+            App = ProjectStorageService.CurrentData ?? new AppData();  // por seguridad
+            App.Companies.Clear();
+            foreach (var c in Companies) App.Companies.Add(c);
+
+            // (opcional) asegúrate de que el servicio siga apuntando a la misma instancia + ruta abierta
+            ProjectStorageService.Bind(App, ProjectStorageService.CurrentPath);
+
+            // ====== UI/estado ======
             foreach (var c in Companies)
             {
                 c.IsExpanded = true;
@@ -678,14 +697,14 @@ namespace ConcentradoKPI.App.ViewModels
 
             ExportCommand?.RaiseCanExecuteChanged();
 
-            // Selección amigable (opcional)
             SelectedCompany = Companies.FirstOrDefault();
             SelectedProject = SelectedCompany?.Projects.FirstOrDefault();
             SelectedWeek = SelectedProject?.Weeks.FirstOrDefault();
 
-            Mensaje = $"Importación aplicada ({imported.Companies.Count} compañías en archivo).";
+            Mensaje = $"Importación aplicada ({App.Companies.Count} compañías en archivo).";
             OnPropertyChanged(nameof(Mensaje));
         }
+
 
         // ====== INotifyPropertyChanged ======
         public event PropertyChangedEventHandler? PropertyChanged;

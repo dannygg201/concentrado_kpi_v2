@@ -44,6 +44,7 @@ namespace ConcentradoKPI.App.Views
             }
         }
         // 🔹 Abre la nueva ventana de personal vigente
+        // 🔹 Abre la nueva ventana de personal vigente
         private void Vm_OpenPersonalRequested(Company company, Project project, WeekData week)
         {
             var key = MakeKey(company, project, week);
@@ -57,11 +58,11 @@ namespace ConcentradoKPI.App.Views
 
             // Crea una nueva ventana modeless
             var vm = new PersonalVigenteViewModel(company, project, week);
-            var win = new PersonalVigenteWindow
+
+            // ⬇️ AQUI EL CAMBIO: pásale los 3 argumentos al constructor
+            var win = new PersonalVigenteWindow(company, project, week)
             {
-                // Si quieres que se minimice junto con el Main, deja Owner = this;
-                // Si la quieres totalmente independiente en la barra de tareas, pon Owner = null;
-                Owner = this,
+                Owner = this,                 // o null si la quieres totalmente independiente
                 ShowInTaskbar = true,
                 DataContext = vm,
                 Title = $"Personal vigente - {company.Name} · {project.Name} · Semana {week.WeekNumber}"
@@ -74,13 +75,13 @@ namespace ConcentradoKPI.App.Views
             win.Closed += (_, __) =>
             {
                 _openWindows.Remove(key);
-                // Si tu VM usa timers/streams, dispón recursos:
                 if (vm is IDisposable d) d.Dispose();
             };
 
-            win.Show();         // modeless
-            BringToFront(win);  // visible y enfocada
+            win.Show();
+            BringToFront(win);
         }
+
 
         private void CompanyMenu_Opened(object sender, RoutedEventArgs e)
         {

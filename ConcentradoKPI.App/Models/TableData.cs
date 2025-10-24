@@ -6,6 +6,6 @@ namespace ConcentradoKPI.App.Models
     {
         public string Name { get; set; } = "";
         public List<string> Columns { get; set; } = new();
-        public List<List<string>> Rows { get; set; } = new();
+        public List<List<string>> Personas { get; set; } = new();
     }
 }

@@ -1,0 +1,226 @@
+﻿<Window x:Class="ConcentradoKPI.App.Views.PrecursorSifWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ConcentradoKPI.App.ViewModels"
+        xmlns:controls="clr-namespace:ConcentradoKPI.App.Views.Controls"
+        Title="Precursor SIF" Width="1180" Height="720"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <vm:ShellViewModel x:Key="Shell"/>
+
+        <!-- estilos -->
+        <SolidColorBrush x:Key="Col_Navy"   Color="#021A4B"/>
+        <SolidColorBrush x:Key="Col_Border" Color="#E5E8EC"/>
+        <SolidColorBrush x:Key="Col_Muted"  Color="#6B7280"/>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Col_Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="10"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Col_Muted}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="RoundedTextBox" TargetType="TextBox">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" CornerRadius="8"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="RoundedCombo" TargetType="ComboBox">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- NAV -->
+        <controls:NavBar Grid.Row="0" DataContext="{StaticResource Shell}"/>
+
+        <!-- CONTENIDO con scroll general -->
+        <ScrollViewer Grid.Row="1" Background="#F6F7FB" VerticalScrollBarVisibility="Auto">
+            <Grid Margin="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- Encabezado -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Lista -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Formulario -->
+                </Grid.RowDefinitions>
+
+                <!-- Encabezado -->
+                <Border Grid.Row="0" Background="{StaticResource Col_Navy}" CornerRadius="10" Padding="16" Margin="0,0,0,10">
+                    <DockPanel>
+                        <TextBlock Text="🦁" FontSize="22" Margin="0,0,10,0" Foreground="White"/>
+                        <StackPanel>
+                            <TextBlock Text="PRECURSOR SIF" Foreground="White" FontSize="18" FontWeight="Black"/>
+                            <TextBlock Text="{Binding EncabezadoDescripcion}" Foreground="#D9E3F0" FontSize="12"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- ===== LISTA (DataGrid) con scroll propio ===== -->
+                <Border Grid.Row="1" Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 👇 Scroll de la lista -->
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Height="280">
+                            <DataGrid ItemsSource="{Binding Registros}"
+                                      SelectedItem="{Binding Seleccionado}"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      IsReadOnly="True"
+                                      HeadersVisibility="Column"
+                                      AlternatingRowBackground="#F8FAFC"
+                                      BorderThickness="0"
+                                      RowHeaderWidth="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="#" Binding="{Binding No}" Width="40"/>
+                                    <DataGridTextColumn Header="UEN" Binding="{Binding UEN}" Width="110"/>
+                                    <DataGridTextColumn Header="Nombre del involucrado" Binding="{Binding NombreInvolucrado}" Width="220"/>
+                                    <DataGridTextColumn Header="Compañía contratista" Binding="{Binding CompaniaContratista}" Width="200"/>
+                                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat={}{0:dd/MM/yyyy}}" Width="110"/>
+                                    <DataGridTextColumn Header="Precursor SIF" Binding="{Binding PrecursorSif}" Width="160"/>
+                                    <DataGridTextColumn Header="Tipo de precursor" Binding="{Binding TipoPrecursor}" Width="170"/>
+                                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*"/>
+                                    <DataGridTextColumn Header="Acciones" Binding="{Binding Acciones}" Width="220"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </ScrollViewer>
+
+                        <TextBlock Grid.Row="1"
+                                   Text="{Binding TotalRegistros, StringFormat=TOTAL REGISTROS: {0}}"
+                                   HorizontalAlignment="Right" Margin="0,6,2,0"
+                                   Foreground="{StaticResource Col_Muted}"/>
+                    </Grid>
+                </Border>
+
+                <!-- ===== FORMULARIO ===== -->
+                <Border Grid.Row="2" Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Agregar / editar registro" FontWeight="Black" FontSize="16"/>
+
+                        <!-- Fila 1 -->
+                        <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="UEN"/>
+                            <ComboBox ItemsSource="{Binding Uens}" SelectedItem="{Binding Form.UEN, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource RoundedCombo}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Nombre del involucrado"/>
+                            <TextBox Text="{Binding Form.NombreInvolucrado, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource RoundedTextBox}"/>
+                        </StackPanel>
+
+                        <!-- Fila 2 -->
+                        <StackPanel Grid.Row="4" Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Compañía contratista"/>
+                            <TextBox Text="{Binding Form.CompaniaContratista, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource RoundedTextBox}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="4" Grid.Column="1" Margin="10,0,0,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Fecha"/>
+                            <DatePicker SelectedDate="{Binding Form.Fecha, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
+                        </StackPanel>
+
+                        <!-- Fila 3 -->
+                        <StackPanel Grid.Row="6" Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Precursor SIF"/>
+                            <TextBox Text="{Binding Form.PrecursorSif, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource RoundedTextBox}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="6" Grid.Column="1" Margin="10,0,0,0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Tipo de precursor"/>
+                            <TextBox Text="{Binding Form.TipoPrecursor, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource RoundedTextBox}"/>
+                        </StackPanel>
+
+                        <!-- Descripción -->
+                        <StackPanel Grid.Row="8" Grid.ColumnSpan="2">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Descripción"/>
+                            <TextBox Text="{Binding Form.Descripcion, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto" Height="90"
+                                     Style="{StaticResource RoundedTextBox}"/>
+                        </StackPanel>
+
+                        <!-- Acciones -->
+                        <StackPanel Grid.Row="10" Grid.ColumnSpan="2">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Acciones"/>
+                            <TextBox Text="{Binding Form.Acciones, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto" Height="70"
+                                     Style="{StaticResource RoundedTextBox}"/>
+                        </StackPanel>
+
+                        <!-- Botones -->
+                        <StackPanel Grid.Row="12" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Agregar"  Command="{Binding AgregarCmd}"  Padding="14,4" Margin="0,0,8,0"/>
+                            <Button Content="Guardar"  Command="{Binding GuardarCmd}"  Padding="14,4" Margin="0,0,8,0"/>
+                            <Button Content="Eliminar" Command="{Binding EliminarCmd}" Padding="14,4" Margin="0,0,8,0"/>
+                            <Button Content="Limpiar"  Command="{Binding LimpiarCmd}"  Padding="14,4"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>
