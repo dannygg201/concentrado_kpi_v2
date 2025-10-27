@@ -34,8 +34,13 @@
             <RowDefinition Height="47*"/>
         </Grid.RowDefinitions>
 
-        <!-- Barra de navegación -->
-        <controls:NavBar Grid.Row="0" DataContext="{StaticResource Shell}"/>
+        <!-- TOP: barra azul + NavBar -->
+        <StackPanel Grid.Row="0" Orientation="Vertical">
+            <!-- Nueva barra superior reutilizable -->
+            <controls:TopBar Title="Piramide de seguridad"/>
+            <!-- NavBar global -->
+            <controls:NavBar DataContext="{StaticResource Shell}"/>
+        </StackPanel>
 
         <!-- Contenido -->
         <Grid Grid.Row="1" Margin="10,10,10,10" Grid.RowSpan="3">

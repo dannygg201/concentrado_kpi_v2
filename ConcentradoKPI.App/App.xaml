@@ -3,9 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
-        <!-- Implicit style: TODAS las ventanas arrancan maximized -->
         <Style TargetType="Window">
-            <Setter Property="WindowState" Value="Maximized"/>
+            <EventSetter Event="Loaded" Handler="Global_WindowLoaded"/>
         </Style>
     </Application.Resources>
 </Application>

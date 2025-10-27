@@ -70,8 +70,13 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Nav superior -->
-        <controls:NavBar Grid.Row="0" DataContext="{StaticResource Shell}"/>
+        <!-- TOP: barra azul + NavBar -->
+        <StackPanel Grid.Row="0" Orientation="Vertical">
+            <!-- Nueva barra superior reutilizable -->
+            <controls:TopBar Title="Incidentes"/>
+            <!-- NavBar global -->
+            <controls:NavBar DataContext="{StaticResource Shell}"/>
+        </StackPanel>
 
         <!-- Contenido con scroll general -->
         <ScrollViewer Grid.Row="1" Background="#F6F7FB" VerticalScrollBarVisibility="Auto">
@@ -82,16 +87,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Encabezado -->
-                <Border Background="{StaticResource Col_Navy}" CornerRadius="10" Padding="16" Margin="0,0,0,10">
-                    <DockPanel>
-                        <TextBlock Text="🦁" FontSize="22" Margin="0,0,10,0" Foreground="White"/>
-                        <StackPanel>
-                            <TextBlock Text="INCIDENTES" Foreground="White" FontSize="18" FontWeight="Black"/>
-                            <TextBlock Text="{Binding EncabezadoDescripcion}" Foreground="#D9E3F0" FontSize="12"/>
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+              
 
                 <!-- LISTA -->
                 <Border Grid.Row="1" Style="{StaticResource Card}">

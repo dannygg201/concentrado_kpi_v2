@@ -69,8 +69,13 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- NAV -->
-        <controls:NavBar Grid.Row="0" DataContext="{StaticResource Shell}"/>
+        <!-- TOP: barra azul + NavBar -->
+        <StackPanel Grid.Row="0" Orientation="Vertical">
+            <!-- Nueva barra superior reutilizable -->
+            <controls:TopBar Title="Precursor SIF"/>
+            <!-- NavBar global -->
+            <controls:NavBar DataContext="{StaticResource Shell}"/>
+        </StackPanel>
 
         <!-- CONTENIDO con scroll general -->
         <ScrollViewer Grid.Row="1" Background="#F6F7FB" VerticalScrollBarVisibility="Auto">
@@ -84,16 +89,7 @@
                     <!-- Formulario -->
                 </Grid.RowDefinitions>
 
-                <!-- Encabezado -->
-                <Border Grid.Row="0" Background="{StaticResource Col_Navy}" CornerRadius="10" Padding="16" Margin="0,0,0,10">
-                    <DockPanel>
-                        <TextBlock Text="🦁" FontSize="22" Margin="0,0,10,0" Foreground="White"/>
-                        <StackPanel>
-                            <TextBlock Text="PRECURSOR SIF" Foreground="White" FontSize="18" FontWeight="Black"/>
-                            <TextBlock Text="{Binding EncabezadoDescripcion}" Foreground="#D9E3F0" FontSize="12"/>
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+               
 
                 <!-- ===== LISTA (DataGrid) con scroll propio ===== -->
                 <Border Grid.Row="1" Style="{StaticResource Card}">

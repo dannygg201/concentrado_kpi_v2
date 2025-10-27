@@ -9,7 +9,7 @@ namespace ConcentradoKPI.App.ViewModels
 {
     public class PersonalVigenteViewModel : INotifyPropertyChanged
     {
-        // Contexto que llega desde MainWindow
+        // Contexto
         public Company Company { get; }
         public Project Project { get; }
         public WeekData Week { get; }
@@ -48,26 +48,28 @@ namespace ConcentradoKPI.App.ViewModels
                 if (_selectedPerson == value) return;
                 _selectedPerson = value;
                 OnPropertyChanged();
-                // Cargar al formulario de edición
+
+                // Cargar al formulario de edición cuando seleccionas una fila
                 if (value != null)
                 {
                     NewNombre = value.Nombre;
                     NewAfiliacion = value.Afiliacion;
                     NewPuesto = value.Puesto;
-                    NewD = value.D; NewL = value.L; NewM = value.M; NewMM = value.MM; NewJ = value.J; NewV = value.V; NewS = value.S;
+                    NewD = value.D; NewL = value.L; NewM = value.M; NewMM = value.MM;
+                    NewJ = value.J; NewV = value.V; NewS = value.S;
                 }
+
+                // Actualiza habilitación de comandos
                 AddPersonCommand?.RaiseCanExecuteChanged();
                 ApplyEditCommand?.RaiseCanExecuteChanged();
                 DeleteSelectedCommand?.RaiseCanExecuteChanged();
             }
         }
 
-
-
         // Totales
         public int TotalHH => Personas.Sum(p => p.HHSemana);
 
-        // Campos de alta/edición (parte inferior)
+        // Campos del formulario (alta/edición)
         private string _newNombre = "";
         public string NewNombre
         {
@@ -80,6 +82,7 @@ namespace ConcentradoKPI.App.ViewModels
                 AddPersonCommand?.RaiseCanExecuteChanged();
             }
         }
+
         private string? _newAfiliacion;
         public string? NewAfiliacion
         {
@@ -92,6 +95,7 @@ namespace ConcentradoKPI.App.ViewModels
                 AddPersonCommand?.RaiseCanExecuteChanged();
             }
         }
+
         private string? _newPuesto;
         public string? NewPuesto
         {
@@ -104,6 +108,7 @@ namespace ConcentradoKPI.App.ViewModels
                 AddPersonCommand?.RaiseCanExecuteChanged();
             }
         }
+
         public int NewD { get => _newD; set { _newD = Pos(value); OnPropertyChanged(); } }
         public int NewL { get => _newL; set { _newL = Pos(value); OnPropertyChanged(); } }
         public int NewM { get => _newM; set { _newM = Pos(value); OnPropertyChanged(); } }
@@ -127,6 +132,7 @@ namespace ConcentradoKPI.App.ViewModels
             Project = p;
             Week = w;
 
+            // Cargar documento previo si existe
             var doc = w.PersonalVigente;
             if (doc != null)
             {
@@ -140,10 +146,33 @@ namespace ConcentradoKPI.App.ViewModels
 
                 Personas.Clear();
                 foreach (var r in doc.Personal ?? Enumerable.Empty<PersonRow>())
+                {
+                    // Suscribimos cada fila para refrescar total cuando cambie HHSemana
+                    r.PropertyChanged += (_, e) =>
+                    {
+                        if (e.PropertyName == nameof(PersonRow.HHSemana))
+                            OnPropertyChanged(nameof(TotalHH));
+                    };
                     Personas.Add(r);
+                }
             }
+
+            // Refrescar TotalHH ante altas/bajas
+            Personas.CollectionChanged += (_, __) =>
+            {
+                OnPropertyChanged(nameof(TotalHH));
+                ApplyEditCommand?.RaiseCanExecuteChanged();
+                DeleteSelectedCommand?.RaiseCanExecuteChanged();
+            };
+
+            // ====== INICIALIZACIÓN DE COMANDOS (lo que faltaba) ======
+            AddPersonCommand = new RelayCommand(_ => AddPerson(), _ => !string.IsNullOrWhiteSpace(NewNombre));
+            ApplyEditCommand = new RelayCommand(_ => ApplyEdit(), _ => SelectedPerson != null);
+            DeleteSelectedCommand = new RelayCommand(_ => DeleteSelected(), _ => SelectedPerson != null);
+            ClearFormCommand = new RelayCommand(_ => ClearForm());
         }
 
+        // --- Acciones ---
         private void AddPerson()
         {
             var row = new PersonRow
@@ -161,7 +190,7 @@ namespace ConcentradoKPI.App.ViewModels
                 S = NewS
             };
 
-            // Escuchar cambios de la fila para refrescar TotalHH
+            // Suscribir para recalcular TotalHH cuando cambie
             row.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(PersonRow.HHSemana))
@@ -171,10 +200,12 @@ namespace ConcentradoKPI.App.ViewModels
             int insertIndex = GetInsertIndexForPuesto(row.Puesto);
             Personas.Insert(insertIndex, row);
             Renumber();
+
             OnPropertyChanged(nameof(TotalHH));
             ClearForm();
             SelectedPerson = null;
-            // refresca botones
+
+            // Refrescar estado de comandos
             AddPersonCommand?.RaiseCanExecuteChanged();
             ApplyEditCommand?.RaiseCanExecuteChanged();
             DeleteSelectedCommand?.RaiseCanExecuteChanged();
@@ -186,34 +217,30 @@ namespace ConcentradoKPI.App.ViewModels
 
             var row = SelectedPerson;
 
-            // ¿cambió el puesto?
             string oldPuestoNorm = NormalizePuesto(row.Puesto);
             string newPuestoNorm = NormalizePuesto(NewPuesto);
 
             row.Nombre = NewNombre.Trim();
             row.Afiliacion = NewAfiliacion;
             row.Puesto = NewPuesto;
-            row.D = NewD; row.L = NewL; row.M = NewM;
-            row.MM = NewMM; row.J = NewJ; row.V = NewV; row.S = NewS;
+            row.D = NewD; row.L = NewL; row.M = NewM; row.MM = NewMM; row.J = NewJ; row.V = NewV; row.S = NewS;
 
-            // Si cambió, mover a su grupo
+            // Si cambió el puesto, reubicar a su grupo
             if (oldPuestoNorm != newPuestoNorm)
             {
-                // lo quitamos y reinsertamos en el índice correcto
                 Personas.Remove(row);
                 int insertIndex = GetInsertIndexForPuesto(row.Puesto);
                 Personas.Insert(insertIndex, row);
                 Renumber();
             }
 
-            // refresca total y limpia
             OnPropertyChanged(nameof(TotalHH));
             ClearForm();
             SelectedPerson = null;
+
             AddPersonCommand?.RaiseCanExecuteChanged();
             ApplyEditCommand?.RaiseCanExecuteChanged();
             DeleteSelectedCommand?.RaiseCanExecuteChanged();
-
         }
 
         private void DeleteSelected()
@@ -222,14 +249,12 @@ namespace ConcentradoKPI.App.ViewModels
 
             Personas.Remove(SelectedPerson);
             Renumber();
-           
-            OnPropertyChanged(nameof(TotalHH));
 
-            // Limpia y deselecciona (no volvemos a cargar nada al formulario)
+            OnPropertyChanged(nameof(TotalHH));
             ClearForm();
             SelectedPerson = null;
-            // refresca botones
-            AddPersonCommand?.RaiseCanExecuteChanged();       
+
+            AddPersonCommand?.RaiseCanExecuteChanged();
             ApplyEditCommand?.RaiseCanExecuteChanged();
             DeleteSelectedCommand?.RaiseCanExecuteChanged();
         }
@@ -243,6 +268,7 @@ namespace ConcentradoKPI.App.ViewModels
 
             AddPersonCommand?.RaiseCanExecuteChanged();
         }
+
         private void Renumber()
         {
             for (int i = 0; i < Personas.Count; i++)
@@ -250,13 +276,12 @@ namespace ConcentradoKPI.App.ViewModels
         }
 
         private static string NormalizePuesto(string? p)
-    => (p ?? "").Trim().ToUpperInvariant();
+            => (p ?? "").Trim().ToUpperInvariant();
 
         private int GetInsertIndexForPuesto(string? puesto, PersonRow? ignore = null)
         {
             string target = NormalizePuesto(puesto);
 
-            // Busca el último índice de ese puesto (ignorando 'ignore' si se pasa)
             int lastIndex = -1;
             for (int i = 0; i < Personas.Count; i++)
             {
@@ -264,12 +289,7 @@ namespace ConcentradoKPI.App.ViewModels
                 if (NormalizePuesto(Personas[i].Puesto) == target)
                     lastIndex = i;
             }
-
-            // Si lo encontró, inserta después de ese último.
-            if (lastIndex >= 0) return lastIndex + 1;
-
-            // Si no existe ese puesto aún, al final.
-            return Personas.Count;
+            return lastIndex >= 0 ? lastIndex + 1 : Personas.Count;
         }
 
         // INotifyPropertyChanged

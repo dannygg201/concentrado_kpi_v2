@@ -9,11 +9,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Assets\ABI_Logo.png" />
+    <None Remove="Assets\logo Apan Top 3_HD %281%29.png" />
     <None Remove="Assets\piramide_limpia.png" />
     <None Remove="Assets\SplashScreen.png" />
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\ABI_Logo.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\logo Apan Top 3_HD (1).png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\modelo_blanco.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Assets\piramide_limpia.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

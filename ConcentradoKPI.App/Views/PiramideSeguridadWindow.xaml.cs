@@ -94,30 +94,34 @@ namespace ConcentradoKPI.App.Views
                 AppView.Incidentes => new IncidentesWindow(_company, _project, _week),
                 _ => null!
             };
+            if (next == null) return;
 
-            if (next != null)
-            {
-                next.Owner = this;
-                next.Show();
-                Close();
-            }
+            // ❌ NADA de Owner aquí (no: next.Owner = this;)
+
+            next.Show();
+
+            // Si esta ventana es la MainWindow y tu ShutdownMode es OnMainWindowClose,
+            // pásale el rol a la nueva ANTES de cerrar para que no se termine la app.
+            if (ReferenceEquals(Application.Current.MainWindow, this))
+                Application.Current.MainWindow = next;
+
+            Close();
         }
 
         // ===== Botón overlay: ✏️ Editar datos =====
         private void EditarDatos_Click(object sender, RoutedEventArgs e)
         {
             var current = GetValuesFromVm();
-            var dlg = new PiramideEditDialog(current) { Owner = this };
+            var dlg = new PiramideEditDialog(current)
+            {
+                Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
 
             if (dlg.ShowDialog() == true)
-            {
                 ApplyValuesToVm(dlg.Result);
-
-                // Si tu VM implementa INotifyPropertyChanged correctamente, no hace falta
-                // “rebalancear” el DataContext. Déjalo así; si algo no refresca, descomenta:
-                // var vm = DataContext; DataContext = null; DataContext = vm;
-            }
         }
+
 
         // =================== LECTURA VM → DTO ===================
         private PiramideValues GetValuesFromVm()

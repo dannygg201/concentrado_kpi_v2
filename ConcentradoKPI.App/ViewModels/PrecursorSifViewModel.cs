@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -9,6 +8,11 @@ namespace ConcentradoKPI.App.ViewModels
 {
     public class PrecursorSifViewModel : INotifyPropertyChanged
     {
+        // ✅ Propiedades que usa el TopBar
+        public Company Company { get; }
+        public Project Project { get; }
+        public WeekData Week { get; }
+
         public string EncabezadoDescripcion { get; }
 
         public ObservableCollection<PrecursorSifRecord> Registros { get; } = new();
@@ -53,8 +57,31 @@ namespace ConcentradoKPI.App.ViewModels
 
         public int TotalRegistros => Registros.Count;
 
+        // ✅ Constructor REAL (objetos)
+        public PrecursorSifViewModel(Company c, Project p, WeekData w)
+        {
+            Company = c;
+            Project = p;
+            Week = w;
+
+            EncabezadoDescripcion = $"Semana {w.WeekNumber}  |  {p.Name}";
+
+            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());
+            GuardarCmd = new RelayCommand(_ => Guardar(), _ => Seleccionado != null);
+            EliminarCmd = new RelayCommand(_ => Eliminar(), _ => Seleccionado != null);
+            LimpiarCmd = new RelayCommand(_ => Limpiar());
+
+            Registros.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalRegistros));
+        }
+
+        // 🧪 Constructor de diseño/prueba (strings) — mantiene compatibilidad
         public PrecursorSifViewModel(string semana, string proyecto)
         {
+            // Dummies para que el TopBar también tenga datos si se usa este ctor
+            Company = new Company { Name = "Demo Co." };
+            Project = new Project { Name = string.IsNullOrWhiteSpace(proyecto) ? "Proyecto Demo" : proyecto };
+            Week = new WeekData { WeekNumber = int.TryParse(semana, out var n) ? n : 1 };
+
             EncabezadoDescripcion = $"Semana {semana}  |  {proyecto}";
 
             AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());
@@ -67,10 +94,9 @@ namespace ConcentradoKPI.App.ViewModels
 
         private bool PuedeAgregar()
         {
-            // Reglas mínimas
             return !string.IsNullOrWhiteSpace(Form.NombreInvolucrado)
                 && !string.IsNullOrWhiteSpace(Form.CompaniaContratista)
-                && !string.IsNullOrWhiteSpace(Form.PrecursorSif); // requerido por el Excel
+                && !string.IsNullOrWhiteSpace(Form.PrecursorSif);
         }
 
         private void Agregar()
@@ -118,7 +144,4 @@ namespace ConcentradoKPI.App.ViewModels
         protected void OnPropertyChanged([CallerMemberName] string? p = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
     }
-
-   
-    
 }

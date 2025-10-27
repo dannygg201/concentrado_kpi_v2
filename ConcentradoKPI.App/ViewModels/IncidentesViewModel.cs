@@ -8,6 +8,11 @@ namespace ConcentradoKPI.App.ViewModels
 {
     public class IncidentesViewModel : INotifyPropertyChanged
     {
+        // ✅ Propiedades que necesita el TopBar
+        public Company Company { get; }
+        public Project Project { get; }
+        public WeekData Week { get; }
+
         public string EncabezadoDescripcion { get; }
 
         public ObservableCollection<IncidentRecord> Registros { get; } = new();
@@ -30,7 +35,13 @@ namespace ConcentradoKPI.App.ViewModels
         public IncidentRecord Form
         {
             get => _form;
-            set { if (_form != value) { _form = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); } }
+            set
+            {
+                if (_form == value) return;
+                _form = value;
+                OnPropertyChanged();
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
 
         // Catálogos
@@ -45,8 +56,31 @@ namespace ConcentradoKPI.App.ViewModels
 
         public int TotalRegistros => Registros.Count;
 
+        // ✅ Constructor REAL (objetos) — para runtime
+        public IncidentesViewModel(Company c, Project p, WeekData w)
+        {
+            Company = c;
+            Project = p;
+            Week = w;
+
+            EncabezadoDescripcion = $"Semana {w.WeekNumber}  |  {p.Name}";
+
+            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());
+            GuardarCmd = new RelayCommand(_ => Guardar(), _ => Seleccionado != null);
+            EliminarCmd = new RelayCommand(_ => Eliminar(), _ => Seleccionado != null);
+            LimpiarCmd = new RelayCommand(_ => Limpiar());
+
+            Registros.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalRegistros));
+        }
+
+        // 🧪 Constructor DISEÑO/PRUEBA (strings) — mantiene compatibilidad
         public IncidentesViewModel(string semana, string proyecto)
         {
+            // Dummies para que el TopBar tenga datos cuando se use este ctor
+            Company = new Company { Name = "Demo Co." };
+            Project = new Project { Name = string.IsNullOrWhiteSpace(proyecto) ? "Proyecto Demo" : proyecto };
+            Week = new WeekData { WeekNumber = int.TryParse(semana, out var n) ? n : 1 };
+
             EncabezadoDescripcion = $"Semana {semana}  |  {proyecto}";
 
             AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());

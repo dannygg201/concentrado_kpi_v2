@@ -13,6 +13,17 @@ namespace ConcentradoKPI.App.Views
             public PiramideValues Values { get; set; } = new();
         }
 
+        public PiramideEditDialog()
+        {
+            InitializeComponent();
+            Loaded += (_, __) =>
+            {
+                WindowState = WindowState.Normal;
+                Left = Owner != null ? Owner.Left + (Owner.Width - Width) / 2 : Left;
+                Top = Owner != null ? Owner.Top + (Owner.Height - Height) / 2 : Top;
+            };
+        }
+
         public PiramideValues Result { get; private set; } = new();
 
         public PiramideEditDialog(PiramideValues current)

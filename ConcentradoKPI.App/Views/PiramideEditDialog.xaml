@@ -2,9 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Editar datos de la pirámide"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
         Width="620" Height="620"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        WindowState="Normal"
+        ResizeMode="CanResize"
         Background="#F7F9FC">
 
     <Window.Resources>

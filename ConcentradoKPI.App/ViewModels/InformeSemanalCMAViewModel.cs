@@ -1,7 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Collections.ObjectModel;   // <— agrega esto
+using System.Collections.ObjectModel;
+using ConcentradoKPI.App.Models;
 
 namespace ConcentradoKPI.App.ViewModels
 {
@@ -32,9 +33,9 @@ namespace ConcentradoKPI.App.ViewModels
         public int TotalSemanal =>
             Incidentes + PrecursoresSifComportamiento + PrecursoresSifCondicion + ActosInseguros + ActosSeguros;
 
-        public double PorcentajeAvance
-            => (ActosSeguros + ActosInseguros) == 0 ? 1.0
-               : Math.Clamp((double)ActosSeguros / (ActosSeguros + ActosInseguros), 0, 1);
+        public double PorcentajeAvance =>
+            (ActosSeguros + ActosInseguros) == 0 ? 1.0
+            : Math.Clamp((double)ActosSeguros / (ActosSeguros + ActosInseguros), 0, 1);
 
         public bool IsTotal { get; set; }
 
@@ -51,34 +52,69 @@ namespace ConcentradoKPI.App.ViewModels
 
     public class InformeSemanalCMAViewModel : INotifyPropertyChanged
     {
+        // ✅ Necesarias para el TopBar
+        public Company Company { get; }
+        public Project Project { get; }
+        public WeekData Week { get; }
+
         public string EncabezadoDescripcion { get; }
 
-        // Colección para el ItemsControl (Opción 1)
+        // Colección para el ItemsControl
         public ObservableCollection<ContratistaRow> Cards { get; } = new();
 
-        // Seguimos usando estos para lógica interna (si quieres)
+        // Puedes seguir usando estos para lógica interna
         public ContratistaRow Editable { get; } = new();
         public ContratistaRow TotalesFila { get; } = new() { IsTotal = true, Nombre = "Totales" };
 
+        // ✅ Constructor REAL (c/p/w)
         public InformeSemanalCMAViewModel(
-            string semana,
-            string proyecto,
+            Company c,
+            Project p,
+            WeekData w,
             string nombreInicial = "",
             string especialidadInicial = "")
         {
-            EncabezadoDescripcion = $"Semana {semana}  |  {proyecto}";
+            Company = c;
+            Project = p;
+            Week = w;
+
+            EncabezadoDescripcion = $"Semana {w.WeekNumber}  |  {p.Name}";
 
             // Inicial editable
-            Editable.Nombre = nombreInicial;
+            Editable.Nombre = string.IsNullOrWhiteSpace(nombreInicial) ? c.Name : nombreInicial;
             Editable.Especialidad = especialidadInicial;
 
             // Ligar cambios de Editable a Totales
             Editable.PropertyChanged += (_, __) => RecalcularTotales();
             RecalcularTotales();
 
-            // IMPORTANTÍSIMO: llenar la colección que usa el ItemsControl
-            Cards.Add(Editable);     // tarjeta editable
-            Cards.Add(TotalesFila);  // tarjeta de totales
+            // Llenar la colección que usa la UI
+            Cards.Add(Editable);
+            Cards.Add(TotalesFila);
+        }
+
+        // 🧪 Constructor para DISEÑO/PRUEBA (strings) — mantiene compatibilidad
+        public InformeSemanalCMAViewModel(
+            string semana,
+            string proyecto,
+            string nombreInicial = "",
+            string especialidadInicial = "")
+        {
+            // Dummies para que el TopBar también tenga datos en diseño
+            Company = new Company { Name = string.IsNullOrWhiteSpace(nombreInicial) ? "Demo Co." : nombreInicial };
+            Project = new Project { Name = string.IsNullOrWhiteSpace(proyecto) ? "Proyecto Demo" : proyecto };
+            Week = new WeekData { WeekNumber = int.TryParse(semana, out var n) ? n : 1 };
+
+            EncabezadoDescripcion = $"Semana {semana}  |  {proyecto}";
+
+            Editable.Nombre = string.IsNullOrWhiteSpace(nombreInicial) ? Company.Name : nombreInicial;
+            Editable.Especialidad = especialidadInicial;
+
+            Editable.PropertyChanged += (_, __) => RecalcularTotales();
+            RecalcularTotales();
+
+            Cards.Add(Editable);
+            Cards.Add(TotalesFila);
         }
 
         private void RecalcularTotales()

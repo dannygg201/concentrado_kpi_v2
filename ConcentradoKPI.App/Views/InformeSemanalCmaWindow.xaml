@@ -217,8 +217,13 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- NAV superior (si lo usas) -->
-        <controls:NavBar Grid.Row="0" DataContext="{StaticResource Shell}"/>
+        <!-- TOP: barra azul + NavBar -->
+        <StackPanel Grid.Row="0" Orientation="Vertical">
+            <!-- Nueva barra superior reutilizable -->
+            <controls:TopBar Title="Informe semanal CMA"/>
+            <!-- NavBar global -->
+            <controls:NavBar DataContext="{StaticResource Shell}"/>
+        </StackPanel>
 
         <!-- CONTENIDO -->
         <Grid Grid.Row="1" Background="#F6F7FB">
@@ -228,16 +233,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Encabezado -->
-                <Border Background="{StaticResource Col_Navy}" CornerRadius="10" Padding="16" Margin="0,0,0,10">
-                    <DockPanel>
-                        <TextBlock Text="🦁" FontSize="22" Margin="0,0,10,0" Foreground="White"/>
-                        <StackPanel>
-                            <TextBlock Text="INFORME SEMANAL · CMA" Foreground="White" FontSize="18" FontWeight="Black"/>
-                            <TextBlock Text="{Binding EncabezadoDescripcion}" Foreground="#D9E3F0" FontSize="12"/>
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+                
 
                 <!-- TARJETAS (siempre 2) -->
                 <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

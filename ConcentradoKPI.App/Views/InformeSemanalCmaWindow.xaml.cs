@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Windows;
 using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.ViewModels;
@@ -17,14 +18,23 @@ namespace ConcentradoKPI.App.Views
         {
             InitializeComponent();
 
-            // VM demo
-            DataContext = new InformeSemanalCMAViewModel(
-                semana: "Semana 1",
-                proyecto: "Proyecto 1",
-                nombreInicial: "Contratista Demo",
-                especialidadInicial: "Otros");
+            if (DesignerProperties.GetIsInDesignMode(this))
+            {
+                DataContext = new InformeSemanalCMAViewModel(
+                    semana: "1",
+                    proyecto: "Proyecto Demo",
+                    nombreInicial: "Contratista Demo",
+                    especialidadInicial: "Otros");
+            }
+            else
+            {
+                // Dummies mínimos si alguien abre sin c/p/w en runtime
+                var c = new Company { Name = "N/A" };
+                var p = new Project { Name = "N/A" };
+                var w = new WeekData { WeekNumber = 1 };
+                DataContext = new InformeSemanalCMAViewModel(c, p, w, nombreInicial: c.Name);
+            }
 
-            // Cablea NavBar (no habrá navegación real porque no tenemos c/p/w)
             WireShell();
         }
 
@@ -36,18 +46,14 @@ namespace ConcentradoKPI.App.Views
             _project = p;
             _week = w;
 
-            DataContext = new InformeSemanalCMAViewModel(
-                semana: w?.ToString() ?? "Semana",
-                proyecto: p?.Name ?? "Proyecto",
-                nombreInicial: c?.Name ?? "",
-                especialidadInicial: "");
+            // ✅ ahora el TopBar ve Company/Project/Week
+            DataContext = new InformeSemanalCMAViewModel(c, p, w, nombreInicial: c?.Name ?? "", especialidadInicial: "");
 
             WireShell();
         }
 
         private void WireShell()
         {
-            // Recupera el Shell del XAML (Window.Resources)
             _shell = Resources["Shell"] as ShellViewModel;
             if (_shell == null) return;
 
@@ -60,14 +66,12 @@ namespace ConcentradoKPI.App.Views
         {
             if (_shell != null)
                 _shell.NavigateRequested -= OnNavigateRequested;
-
             base.OnClosed(e);
         }
 
         // Navegación del menú superior
         private void OnNavigateRequested(AppView target)
         {
-            // Si abriste la ventana sin c/p/w, no navegues
             if (_company is null || _project is null || _week is null) return;
 
             Window next = target switch
@@ -80,11 +84,15 @@ namespace ConcentradoKPI.App.Views
                 _ => null!
             };
 
-            if (next != null)
-            {
-                next.Show();
-                Close();
-            }
+            if (next == null) return;
+
+            next.Show();
+
+            // Si esta ventana es MainWindow, pásale el rol para no cerrar la app
+            if (ReferenceEquals(Application.Current.MainWindow, this))
+                Application.Current.MainWindow = next;
+
+            Close();
         }
     }
 }

@@ -10,6 +10,13 @@ namespace ConcentradoKPI.App
         {
             base.OnStartup(e);
 
+            // REGISTRA EL HANDLER GLOBAL PARA TODAS LAS Window
+            EventManager.RegisterClassHandler(
+                typeof(Window),
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(Global_WindowLoaded)
+            );
+
             // Evita que la app se cierre cuando cerremos el splash
             Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
@@ -30,5 +37,18 @@ namespace ConcentradoKPI.App
             // Restaura el shutdown normal: la app cierra cuando se cierre MainWindow
             Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
         }
+        private void Global_WindowLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Window w)
+            {
+                // Evita que SizeToContent bloquee el maximizado
+                if (w.SizeToContent != SizeToContent.Manual)
+                    w.SizeToContent = SizeToContent.Manual;
+
+                w.WindowState = WindowState.Maximized;
+            }
+        }
+
     }
+
 }
