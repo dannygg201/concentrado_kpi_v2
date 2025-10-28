@@ -90,8 +90,10 @@
                                          PreviewTextInput="NumericOnly"/>
                             </StackPanel>
                             <StackPanel Margin="6">
-                                <TextBlock Text="Last Record (texto/fecha)" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding Values.LastRecord, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Last Record (fecha)" Margin="0,0,0,4"/>
+                                <DatePicker SelectedDate="{Binding LastRecordDate, UpdateSourceTrigger=PropertyChanged}"
+                                         SelectedDateFormat="Short"
+                                         DisplayDateStart='2025-01-01'/>
                             </StackPanel>
                         </UniformGrid>
                     </GroupBox>

@@ -63,6 +63,16 @@
         </Style>
     </Window.Resources>
 
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Save"
+                    Executed="SaveCommand_Executed"
+                    CanExecute="SaveCommand_CanExecute"/>
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Command="ApplicationCommands.Save" Modifiers="Control" Key="S"/>
+    </Window.InputBindings>
+
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -109,17 +119,17 @@
                                       HeadersVisibility="Column"
                                       AlternatingRowBackground="#F8FAFC"
                                       BorderThickness="0"
-                                      RowHeaderWidth="0">
+                                      RowHeaderWidth="0" SelectionChanged="DataGrid_SelectionChanged">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="#" Binding="{Binding No}" Width="40"/>
+                                    <DataGridTextColumn Header="#" Binding="{Binding No}" Width="25"/>
                                     <DataGridTextColumn Header="UEN" Binding="{Binding UEN}" Width="110"/>
-                                    <DataGridTextColumn Header="Nombre del involucrado" Binding="{Binding NombreInvolucrado}" Width="220"/>
+                                    <DataGridTextColumn Header="Nombre del involucrado" Binding="{Binding NombreInvolucrado}" Width="200"/>
                                     <DataGridTextColumn Header="Compañía contratista" Binding="{Binding CompaniaContratista}" Width="200"/>
-                                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat={}{0:dd/MM/yyyy}}" Width="110"/>
+                                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat={}{0:dd/MM/yyyy}}" Width="70"/>
                                     <DataGridTextColumn Header="Precursor SIF" Binding="{Binding PrecursorSif}" Width="160"/>
-                                    <DataGridTextColumn Header="Tipo de precursor" Binding="{Binding TipoPrecursor}" Width="170"/>
-                                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*"/>
-                                    <DataGridTextColumn Header="Acciones" Binding="{Binding Acciones}" Width="220"/>
+                                    <DataGridTextColumn Header="Tipo de precursor" Binding="{Binding TipoPrecursor}" Width="110"/>
+                                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="80"/>
+                                    <DataGridTextColumn Header="Acciones" Binding="{Binding Acciones}" Width="140"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </ScrollViewer>

@@ -42,6 +42,7 @@ namespace ConcentradoKPI.App.Views
             switch (target)
             {
                 case AppView.PiramideSeguridad:
+                    SyncWeekFromVm();
                     new PiramideSeguridadWindow(_company, _project, _week).Show();
                     Close();
                     break;
@@ -76,7 +77,7 @@ namespace ConcentradoKPI.App.Views
                                 MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-
+            SyncWeekFromVm();
             // 1) volcar a la semana (esto es lo que se serializa)
             _week.PersonalVigente = new PersonalVigenteDocument
             {
@@ -105,6 +106,25 @@ namespace ConcentradoKPI.App.Views
                 MessageBox.Show($"No se pudo guardar.\n{ex.Message}",
                                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+        private void SyncWeekFromVm()
+        {
+            if (DataContext is not PersonalVigenteViewModel vm) return;
+
+            _week.PersonalVigente = new PersonalVigenteDocument
+            {
+                Company = _company.Name,
+                Project = _project.Name,
+                WeekNumber = _week.WeekNumber,
+                RazonSocial = vm.RazonSocial ?? "",
+                ResponsableObra = vm.ResponsableObra ?? "",
+                RegistroIMSS = vm.RegistroIMSS ?? "",
+                RFCCompania = vm.RFCCompania ?? "",
+                DireccionLegal = vm.DireccionLegal ?? "",
+                NumeroProveedor = vm.NumeroProveedor ?? "",
+                Fecha = vm.Fecha,
+                Personal = vm.Personas.ToList()
+            };
         }
 
 

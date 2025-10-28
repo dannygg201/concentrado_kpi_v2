@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Windows;
 using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.ViewModels;
+using System.Windows.Input;
+using ConcentradoKPI.App.Services;
 
 namespace ConcentradoKPI.App.Views
 {
@@ -71,6 +73,11 @@ namespace ConcentradoKPI.App.Views
                 _shell.CurrentView = AppView.PiramideSeguridad;
                 _shell.NavigateRequested += OnNavigateRequested;
             }
+            // Si la semana ya trae PiramideSeguridad guardada, precárgala a la UI
+            if (_week?.PiramideSeguridad is PiramideSeguridadDocument docExistente)
+            {
+                ApplyValuesToVm(FromDocument(docExistente));
+            }
         }
 
         protected override void OnClosed(EventArgs e)
@@ -85,6 +92,8 @@ namespace ConcentradoKPI.App.Views
         private void OnNavigateRequested(AppView target)
         {
             if (_company is null || _project is null || _week is null) return;
+            
+            SyncWeekFromVm();
 
             Window next = target switch
             {
@@ -215,6 +224,59 @@ namespace ConcentradoKPI.App.Views
             SetIntProp(vm, "LTI1", v.LTI1); SetIntProp(vm, "LTI2", v.LTI2); SetIntProp(vm, "LTI3", v.LTI3);
         }
 
+        // === Habilitación del comando Guardar ===
+        private void SaveCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            // Aquí podrías validar algo; por ahora, siempre habilitado
+            e.CanExecute = true;
+        }
+
+        // === Guardar al archivo del proyecto/semana ===
+        private async void SaveCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (_company is null || _project is null || _week is null)
+            {
+                MessageBox.Show("No hay contexto de semana/proyecto para guardar.", "Guardar",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                // 1) VM -> WeekData (memoria)
+                SyncWeekFromVm();
+
+                // 2) Persistir al archivo (elige ubicación si es nuevo)
+                var path = await ProjectStorageService.SaveOrPromptAsync(this);
+
+                MessageBox.Show($"Guardado correctamente.\n\nArchivo:\n{path}",
+                                "Guardar", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (OperationCanceledException) { /* cancelado por el usuario */ }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"No se pudo guardar.\n{ex.Message}",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // === Llevar los valores actuales de la UI a WeekData.PiramideSeguridad ===
+        private void SyncWeekFromVm()
+        {
+            if (_company is null || _project is null || _week is null) return;
+
+            // lee lo que está en pantalla
+            var values = GetValuesFromVm();
+
+            // opcional: normaliza rangos
+            if (values.AvanceProgramaPct < 0) values.AvanceProgramaPct = 0;
+            if (values.AvanceProgramaPct > 100) values.AvanceProgramaPct = 100;
+
+            // conviértelo al documento serializable y súbelo a la semana
+            _week.PiramideSeguridad = ToDocument(values, _company.Name, _project.Name, _week.WeekNumber);
+        }
+
+
         // ====================== Helpers de conversión ======================
         private static int CoerceInt(object? val)
         {
@@ -300,6 +362,88 @@ namespace ConcentradoKPI.App.Views
                 }
             }
             catch { /* ignora si no se puede convertir */ }
+        }
+        public static PiramideSeguridadDocument ToDocument(PiramideValues v, string company, string project, int weekNumber)
+        {
+            return new PiramideSeguridadDocument
+            {
+                Company = company,
+                Project = project,
+                WeekNumber = weekNumber,
+                Companias = v.Companias,
+                Colaboradores = v.Colaboradores,
+                TecnicosSeguridad = v.TecnicosSeguridad,
+                HorasTrabajadas = v.HorasTrabajadas,
+                WithoutLTIs = v.WithoutLTIs,
+                LastRecord = string.IsNullOrWhiteSpace(v.LastRecord) ? null : v.LastRecord,
+                Seguros = v.Seguros,
+                Inseguros = v.Inseguros,
+                Detectadas = v.Detectadas,
+                Corregidas = v.Corregidas,
+                Avance = v.Avance,
+                AvanceProgramaPct = v.AvanceProgramaPct,
+                Efectividad = v.Efectividad,
+                TerritoriosRojo = v.TerritoriosRojo,
+                TerritoriosVerde = v.TerritoriosVerde,
+                Potenciales = v.Potenciales,
+                Precursores1 = v.Precursores1,
+                Precursores2 = v.Precursores2,
+                Precursores3 = v.Precursores3,
+                IncidentesSinLesion1 = v.IncidentesSinLesion1,
+                IncidentesSinLesion2 = v.IncidentesSinLesion2,
+                FAI1 = v.FAI1,
+                FAI2 = v.FAI2,
+                FAI3 = v.FAI3,
+                MTI1 = v.MTI1,
+                MTI2 = v.MTI2,
+                MTI3 = v.MTI3,
+                MDI1 = v.MDI1,
+                MDI2 = v.MDI2,
+                MDI3 = v.MDI3,
+                LTI1 = v.LTI1,
+                LTI2 = v.LTI2,
+                LTI3 = v.LTI3,
+                SavedUtc = DateTime.UtcNow
+            };
+        }
+        public static PiramideValues FromDocument(PiramideSeguridadDocument d)
+        {
+            return new PiramideValues
+            {
+                Companias = d.Companias,
+                Colaboradores = d.Colaboradores,
+                TecnicosSeguridad = d.TecnicosSeguridad,
+                HorasTrabajadas = d.HorasTrabajadas,
+                WithoutLTIs = d.WithoutLTIs,
+                LastRecord = d.LastRecord ?? "",
+                Seguros = d.Seguros,
+                Inseguros = d.Inseguros,
+                Detectadas = d.Detectadas,
+                Corregidas = d.Corregidas,
+                Avance = d.Avance,
+                AvanceProgramaPct = d.AvanceProgramaPct,
+                Efectividad = d.Efectividad,
+                TerritoriosRojo = d.TerritoriosRojo,
+                TerritoriosVerde = d.TerritoriosVerde,
+                Potenciales = d.Potenciales,
+                Precursores1 = d.Precursores1,
+                Precursores2 = d.Precursores2,
+                Precursores3 = d.Precursores3,
+                IncidentesSinLesion1 = d.IncidentesSinLesion1,
+                IncidentesSinLesion2 = d.IncidentesSinLesion2,
+                FAI1 = d.FAI1,
+                FAI2 = d.FAI2,
+                FAI3 = d.FAI3,
+                MTI1 = d.MTI1,
+                MTI2 = d.MTI2,
+                MTI3 = d.MTI3,
+                MDI1 = d.MDI1,
+                MDI2 = d.MDI2,
+                MDI3 = d.MDI3,
+                LTI1 = d.LTI1,
+                LTI2 = d.LTI2,
+                LTI3 = d.LTI3
+            };
         }
     }
 }

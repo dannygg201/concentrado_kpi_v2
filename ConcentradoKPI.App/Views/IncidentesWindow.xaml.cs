@@ -1,7 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Linq;
+using System.ComponentModel;
 using System.Windows;
 using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.ViewModels;
+using ConcentradoKPI.App.Services;
 
 namespace ConcentradoKPI.App.Views
 {
@@ -47,6 +50,7 @@ namespace ConcentradoKPI.App.Views
 
             // ✅ VM real con c/p/w (TopBar lee Company/Project/Week)
             DataContext = new IncidentesViewModel(c, p, w);
+            HydrateFromWeek();
 
             if (Resources["Shell"] is ShellViewModel shell)
             {
@@ -78,5 +82,77 @@ namespace ConcentradoKPI.App.Views
 
             Close();
         }
+        // ===== Guardar (habilitado) =====
+        private void SaveCommand_CanExecute(object sender, System.Windows.Input.CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = _company != null && _project != null && _week != null;
+        }
+
+        // ===== Guardar (ejecución) =====
+        private async void SaveCommand_Executed(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            if (_company is null || _project is null || _week is null)
+            {
+                MessageBox.Show("No hay contexto de semana/proyecto para guardar.", "Guardar",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                // 1) VM -> WeekData (memoria)
+                SyncWeekFromVm();
+
+                // 2) Persistir al archivo (elige ubicación si es nuevo)
+                var path = await ProjectStorageService.SaveOrPromptAsync(this);
+
+                MessageBox.Show($"Guardado correctamente.\n\nArchivo:\n{path}",
+                                "Guardar", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (OperationCanceledException) { /* cancelado por el usuario */ }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"No se pudo guardar.\n{ex.Message}",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        // ===== Volcar VM.Registros → WeekData.Incidentes =====
+        private void SyncWeekFromVm()
+        {
+            if (DataContext is not IncidentesViewModel vm) return;
+            if (_company is null || _project is null || _week is null) return;
+
+            var snapshot = vm.Registros
+                             .Select(r => r.Clone())
+                             .ToList();
+
+            _week.Incidentes = new IncidentesDocument
+            {
+                Company = _company.Name,
+                Project = _project.Name,
+                WeekNumber = _week.WeekNumber,
+                Items = snapshot,
+                SavedUtc = DateTime.UtcNow
+            };
+        }
+        // ===== Cargar WeekData.Incidentes → VM.Registros al abrir =====
+        private void HydrateFromWeek()
+        {
+            if (_week?.Incidentes is not IncidentesDocument d) return;
+            if (DataContext is not IncidentesViewModel vm) return;
+
+            vm.Registros.Clear();
+            foreach (var it in d.Items)
+                vm.Registros.Add(it.Clone());
+
+            // Renumerar consecutivo 1..N por si acaso
+            for (int i = 0; i < vm.Registros.Count; i++)
+                vm.Registros[i].No = i + 1;
+
+            // Limpia selección y formulario
+            vm.Seleccionado = null;
+            vm.Form = new IncidentRecord();
+        }
+
     }
 }

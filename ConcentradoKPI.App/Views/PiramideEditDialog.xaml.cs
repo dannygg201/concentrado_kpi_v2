@@ -1,6 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows;
-using System.Windows.Input;
 using ConcentradoKPI.App.Models;
 
 namespace ConcentradoKPI.App.Views
@@ -11,6 +12,9 @@ namespace ConcentradoKPI.App.Views
         public class Vm
         {
             public PiramideValues Values { get; set; } = new();
+
+            // Nuevo: campo de trabajo como fecha (nullable) para el DatePicker
+            public DateTime? LastRecordDate { get; set; }
         }
 
         public PiramideEditDialog()
@@ -29,35 +33,56 @@ namespace ConcentradoKPI.App.Views
         public PiramideEditDialog(PiramideValues current)
         {
             InitializeComponent();
-            DataContext = new Vm { Values = current.Clone() }; // Trabajamos con copia
+
+            // Clonamos valores actuales y mapeamos LastRecord (string) -> DateTime?
+            var vm = new Vm { Values = current.Clone() };
+
+            if (!string.IsNullOrWhiteSpace(vm.Values.LastRecord))
+            {
+                // Intentamos parsear con formatos comunes (yyyy-MM-dd preferente)
+                if (DateTime.TryParseExact(vm.Values.LastRecord,
+                                           new[] { "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy/MM/dd" },
+                                           CultureInfo.InvariantCulture,
+                                           DateTimeStyles.None,
+                                           out var parsed))
+                {
+                    vm.LastRecordDate = parsed;
+                }
+                else if (DateTime.TryParse(vm.Values.LastRecord, out var parsed2))
+                {
+                    vm.LastRecordDate = parsed2;
+                }
+            }
+
+            DataContext = vm;
         }
 
-        // Solo permite dígitos (se permiten Backspace/Delete a nivel de control)
+        // Solo permite dígitos (para los numéricos)
         private static readonly Regex _digits = new(@"^\d+$");
         private void NumericOnly(object sender, System.Windows.Input.TextCompositionEventArgs e)
         {
-            e.Handled = !System.Text.RegularExpressions.Regex.IsMatch(e.Text, "^[0-9]+$");
+            e.Handled = !Regex.IsMatch(e.Text, "^[0-9]+$");
         }
-
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             if (DataContext is Vm vm)
             {
-                // Normaliza algunos rangos (ajusta si necesitas más reglas)
+                // Normaliza rangos
                 if (vm.Values.AvanceProgramaPct < 0) vm.Values.AvanceProgramaPct = 0;
                 if (vm.Values.AvanceProgramaPct > 100) vm.Values.AvanceProgramaPct = 100;
 
+                // Mapear DatePicker -> string (o vacío si no eligieron fecha)
+                vm.Values.LastRecord = vm.LastRecordDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty;
+
                 Result = vm.Values;
-                DialogResult = true; // cierra el diálogo devolviendo OK
+                DialogResult = true; // OK
             }
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false;  // cierra el diálogo sin aplicar cambios
+            DialogResult = false; // Cancel
         }
-
-
     }
 }

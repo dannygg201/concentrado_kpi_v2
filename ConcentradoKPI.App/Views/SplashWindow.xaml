@@ -16,8 +16,8 @@
             <!-- Logo y título -->
             <StackPanel Grid.Row="0" Margin="0,8,0,16" HorizontalAlignment="Center">
                 <Image Source="pack://application:,,,/Assets/SplashScreen.png"
-       Height="100" Margin="0,0,0,12"/>
-                <TextBlock Text="Concentrado KPI" FontSize="26" FontWeight="Bold" />
+                    Height="200" Margin="0,0,0,12"/>
+                <TextBlock Text="Concentrado KPI" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center"/>
                 <TextBlock Text="Cargando módulos..." FontSize="14" Foreground="#666"
                            Margin="0,6,0,0" HorizontalAlignment="Center"/>
             </StackPanel>
@@ -27,7 +27,7 @@
                          VerticalAlignment="Center" Margin="40,0"/>
 
             <!-- Footer -->
-            <TextBlock Grid.Row="2" Text="© 2025 Danny" Opacity="0.6"
+            <TextBlock Grid.Row="2" Text="©2025 TheAmazingDannyGlez" Opacity="0.6"
                        HorizontalAlignment="Center" Margin="0,16,0,0"/>
         </Grid>
     </Border>

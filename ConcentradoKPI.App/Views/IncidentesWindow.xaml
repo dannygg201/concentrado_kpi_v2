@@ -64,6 +64,17 @@
         </Style>
     </Window.Resources>
 
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Save"
+                  Executed="SaveCommand_Executed"
+                  CanExecute="SaveCommand_CanExecute"/>
+    </Window.CommandBindings>
+
+    <Window.InputBindings>
+        <KeyBinding Command="ApplicationCommands.Save" Modifiers="Control" Key="S"/>
+    </Window.InputBindings>
+
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -109,15 +120,15 @@
                                       BorderThickness="0"
                                       RowHeaderWidth="0">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="#" Binding="{Binding No}" Width="40"/>
+                                    <DataGridTextColumn Header="#" Binding="{Binding No}" Width="25"/>
                                     <DataGridTextColumn Header="UEN" Binding="{Binding UEN}" Width="110"/>
-                                    <DataGridTextColumn Header="Nombre del involucrado" Binding="{Binding NombreInvolucrado}" Width="220"/>
+                                    <DataGridTextColumn Header="Nombre del involucrado" Binding="{Binding NombreInvolucrado}" Width="200"/>
                                     <DataGridTextColumn Header="Compañía contratista" Binding="{Binding CompaniaContratista}" Width="200"/>
-                                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat={}{0:dd/MM/yyyy}}" Width="110"/>
-                                    <DataGridTextColumn Header="Clasificación" Binding="{Binding Clasificacion}" Width="130"/>
-                                    <DataGridTextColumn Header="Responsable de seguridad de proyectos" Binding="{Binding ResponsableSeguridad}" Width="250"/>
-                                    <DataGridTextColumn Header="Observaciones" Binding="{Binding Observaciones}" Width="*"/>
-                                    <DataGridTextColumn Header="Acciones" Binding="{Binding Acciones}" Width="220"/>
+                                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat={}{0:dd/MM/yyyy}}" Width="80"/>
+                                    <DataGridTextColumn Header="Clasificación" Binding="{Binding Clasificacion}" Width="80"/>
+                                    <DataGridTextColumn Header="Responsable de seguridad de proyectos" Binding="{Binding ResponsableSeguridad}" Width="200"/>
+                                    <DataGridTextColumn Header="Observaciones" Binding="{Binding Observaciones}" Width="100"/>
+                                    <DataGridTextColumn Header="Acciones" Binding="{Binding Acciones}" Width="200"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </ScrollViewer>

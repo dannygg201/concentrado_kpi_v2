@@ -1,7 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Linq;
+using System.ComponentModel;
 using System.Windows;
 using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.ViewModels;
+using ConcentradoKPI.App.Services;
 
 namespace ConcentradoKPI.App.Views
 {
@@ -47,6 +50,7 @@ namespace ConcentradoKPI.App.Views
 
             // ✅ VM real con c/p/w para que el TopBar lea Company/Project/Week
             DataContext = new PrecursorSifViewModel(c, p, w);
+            HydrateFromWeek();
 
             if (Resources["Shell"] is ShellViewModel shell)
             {
@@ -78,5 +82,86 @@ namespace ConcentradoKPI.App.Views
 
             Close();
         }
+
+        private void DataGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+
+        }
+        // ===== Guardar (habilitado) =====
+        private void SaveCommand_CanExecute(object sender, System.Windows.Input.CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = _company != null && _project != null && _week != null;
+        }
+
+        // ===== Guardar (ejecución) =====
+        private async void SaveCommand_Executed(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            if (_company is null || _project is null || _week is null)
+            {
+                MessageBox.Show("No hay contexto de semana/proyecto para guardar.", "Guardar",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                // 1) VM -> WeekData (memoria)
+                SyncWeekFromVm();
+
+                // 2) Persistir al archivo (elige ubicación si es nuevo)
+                var path = await ProjectStorageService.SaveOrPromptAsync(this);
+
+                MessageBox.Show($"Guardado correctamente.\n\nArchivo:\n{path}",
+                                "Guardar", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (OperationCanceledException) { /* cancelado por el usuario */ }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"No se pudo guardar.\n{ex.Message}",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ===== VM → WeekData.PrecursorSif =====
+        private void SyncWeekFromVm()
+        {
+            if (DataContext is not PrecursorSifViewModel vm) return;
+            if (_company is null || _project is null || _week is null) return;
+
+            // Toma la lista actual del VM
+            var items = vm.Registros?.Select(r => r.Clone()).ToList() ?? new();
+
+            _week.PrecursorSif = new PrecursorSifDocument
+            {
+                Company = _company.Name,
+                Project = _project.Name,
+                WeekNumber = _week.WeekNumber,
+                Items = items,
+                SavedUtc = DateTime.UtcNow
+            };
+        }
+
+        // ===== Cargar VM desde WeekData.PrecursorSif (si existe) =====
+        private void HydrateFromWeek()
+        {
+            if (_week?.PrecursorSif is not PrecursorSifDocument d) return;
+            if (DataContext is not PrecursorSifViewModel vm) return;
+
+            vm.Registros.Clear();
+            foreach (var it in d.Items)
+                vm.Registros.Add(it.Clone());
+
+            // Renumerar el consecutivo (No = 1..N)
+            for (int i = 0; i < vm.Registros.Count; i++)
+                vm.Registros[i].No = i + 1;
+
+            // Limpia selección y el formulario si aplica
+            vm.Seleccionado = null;
+            if (vm.Form is not null)
+                vm.Form.CopyFrom(new PrecursorSifRecord()); // deja el form en blanco
+        }
+
+
+
     }
 }

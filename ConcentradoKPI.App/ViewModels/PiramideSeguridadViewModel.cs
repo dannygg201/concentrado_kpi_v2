@@ -2,6 +2,8 @@
 using System.Runtime.CompilerServices;
 using ConcentradoKPI.App.Models;
 using System;
+using System.Globalization;
+using System.Linq;
 
 namespace ConcentradoKPI.App.ViewModels
 {
@@ -15,7 +17,10 @@ namespace ConcentradoKPI.App.ViewModels
         {
             Company = c; Project = p; Week = w;
 
-            // Mock inicial
+            // ===== Totales desde Personal Vigente =====
+            RecalculateFromWeek();
+
+            // ===== Mocks iniciales restantes (lo que no depende de Personal Vigente) =====
             MTH = "MTH";
             YTD = DateTime.Now.Year.ToString();
 
@@ -26,8 +31,11 @@ namespace ConcentradoKPI.App.ViewModels
             CondicionesDetectadas = "0"; CondicionesCorregidas = "0"; AvanceCondiciones = "0%";
             AvanceProgramaPct = "0";
 
-            Companias = "0"; Colaboradores = "0"; TecnicosSeguridad = "0"; HorasTrabajadas = "0";
-            WithoutLTIs = "0 días"; LastRecord = "2001-03-05";
+            // Si quieres que Companias/TecnicosSeguridad también vengan de algún lado, aquí mismo los asignas.
+            if (string.IsNullOrWhiteSpace(Companias)) Companias = "0";
+            if (string.IsNullOrWhiteSpace(TecnicosSeguridad)) TecnicosSeguridad = "0";
+            if (string.IsNullOrWhiteSpace(WithoutLTIs)) WithoutLTIs = "0 días";
+            if (string.IsNullOrWhiteSpace(LastRecord)) LastRecord = "2025-01-01";
 
             FAI1 = "0"; FAI2 = "0"; FAI3 = "0";
             MTI1 = "0"; MTI2 = "0"; MTI3 = "0";
@@ -36,7 +44,20 @@ namespace ConcentradoKPI.App.ViewModels
             IncidentesSinLesion1 = "0"; IncidentesSinLesion2 = "0";
             Precursores1 = "0"; Precursores2 = "0"; Precursores3 = "0";
             Efectividad = "0";
+        }
 
+        /// <summary>
+        /// Relee Week.PersonalVigente para calcular Colaboradores y HorasTrabajadas.
+        /// Llama este método si actualizas Week.PersonalVigente en runtime y quieres refrescar la pirámide.
+        /// </summary>
+        public void RecalculateFromWeek()
+        {
+            var lista = Week?.PersonalVigente?.Personal ?? Enumerable.Empty<PersonRow>();
+            var colaboradores = lista.Count();
+            var horas = lista.Sum(r => r?.HHSemana ?? 0);
+
+            Colaboradores = colaboradores.ToString(CultureInfo.InvariantCulture);
+            HorasTrabajadas = horas.ToString(CultureInfo.InvariantCulture);
         }
 
         // Cabeceras
@@ -115,7 +136,6 @@ namespace ConcentradoKPI.App.ViewModels
         // Territorios (rojo/verde)
         string _TerrRojo = "0"; public string TerritoriosRojo { get => _TerrRojo; set { _TerrRojo = value; OnPropertyChanged(); } }
         string _TerrVerde = "0"; public string TerritoriosVerde { get => _TerrVerde; set { _TerrVerde = value; OnPropertyChanged(); } }
-
 
         public event PropertyChangedEventHandler? PropertyChanged;
         void OnPropertyChanged([CallerMemberName] string? n = null)

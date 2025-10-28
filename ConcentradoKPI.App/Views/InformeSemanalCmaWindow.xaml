@@ -30,6 +30,22 @@
             <Setter Property="Margin" Value="10"/>
         </Style>
 
+        <!-- Pill de estadística -->
+        <Style x:Key="StatPill" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,8,12,0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <!-- Número grande de estadística -->
+        <Style x:Key="StatNumber" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <!-- Label -->
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Col_Muted}"/>
@@ -77,9 +93,8 @@
             <Setter Property="Margin" Value="0,6,10,0"/>
         </Style>
 
-        <!-- ===== Tarjeta EDITABLE (se liga al item) ===== -->
         <DataTemplate x:Key="CardEditableTemplate">
-            <Border Style="{StaticResource Card}" MinWidth="620">
+            <Border Style="{StaticResource Card}" HorizontalAlignment="Stretch">
                 <StackPanel>
                     <TextBlock Text="Contratista" FontSize="18" FontWeight="Black" Margin="0,0,0,12"/>
 
@@ -89,6 +104,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
+                        <!-- Columna izquierda -->
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Nombre"/>
                             <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}"/>
@@ -115,6 +131,7 @@
                             <TextBlock FontWeight="Bold" FontSize="14" Text="{Binding TotalSemanal}"/>
                         </StackPanel>
 
+                        <!-- Columna derecha -->
                         <StackPanel Grid.Column="1" Margin="12,0,0,0">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Especialidad"/>
                             <TextBox Style="{StaticResource RoundedTextBox}" Text="{Binding Especialidad, UpdateSourceTrigger=PropertyChanged}"/>
@@ -142,25 +159,43 @@
                         </StackPanel>
                     </Grid>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                        <Border Style="{StaticResource Chip}" Background="#ECFDF5" BorderBrush="#BBF7D0">
-                            <TextBlock Text="{Binding ActosSeguros, StringFormat=Seguros: {0}}"
-                     Foreground="{StaticResource Col_Pos}" FontWeight="SemiBold"/>
-                        </Border>
-                        <Border Style="{StaticResource Chip}" Background="#FEF2F2" BorderBrush="#FECACA">
-                            <TextBlock Text="{Binding ActosInseguros, StringFormat=Inseguros: {0}}"
-                     Foreground="{StaticResource Col_Neg}" FontWeight="SemiBold"/>
-                        </Border>
-                    </StackPanel>
+                    <!-- NUEVO: “Seguros / Inseguros” más pro -->
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                    <StackPanel Margin="0,8,0,0">
+                        <!-- Seguros -->
+                        <Border Grid.Column="0" Style="{StaticResource StatPill}"
+                Background="#ECFDF5" BorderBrush="#BBF7D0">
+                            <DockPanel LastChildFill="True">
+                                <Ellipse Width="10" Height="10" Fill="#22C55E" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Seguros" Foreground="#065F46" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding ActosSeguros}" Style="{StaticResource StatNumber}" Foreground="#065F46" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Inseguros -->
+                        <Border Grid.Column="1" Style="{StaticResource StatPill}"
+                Background="#FEF2F2" BorderBrush="#FECACA">
+                            <DockPanel LastChildFill="True">
+                                <Ellipse Width="10" Height="10" Fill="#EF4444" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Inseguros" Foreground="#7F1D1D" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding ActosInseguros}" Style="{StaticResource StatNumber}" Foreground="#7F1D1D" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Avance -->
+                    <StackPanel Margin="0,12,0,0">
                         <DockPanel LastChildFill="True">
                             <TextBlock Text="% Avance" Style="{StaticResource FieldLabel}" Margin="0,0,8,0"/>
                             <TextBlock Text="{Binding PorcentajeAvance, StringFormat={}{0:P0}}"
                      FontWeight="Bold" HorizontalAlignment="Right"/>
                         </DockPanel>
                         <ProgressBar Minimum="0" Maximum="1"
-                            Value="{Binding PorcentajeAvance, Mode=OneWay}" Height="10"/>
+                     Value="{Binding PorcentajeAvance, Mode=OneWay}" Height="10"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -168,7 +203,7 @@
 
         <!-- ===== Tarjeta TOTALES (solo lectura, ligada al item) ===== -->
         <DataTemplate x:Key="CardTotalesTemplate">
-            <Border Style="{StaticResource Card}" Width="620" Background="#FBFCFE" BorderBrush="#E0E6F1">
+            <Border Style="{StaticResource Card}" HorizontalAlignment="Stretch" Width="620" Background="#FBFCFE" BorderBrush="#E0E6F1">
                 <StackPanel>
                     <TextBlock Text="Totales" FontWeight="Black" FontSize="16"/>
                     <Separator Margin="0,8,0,10"/>
@@ -211,6 +246,17 @@
 
     </Window.Resources>
 
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Save"
+                  Executed="SaveCommand_Executed"
+                  CanExecute="SaveCommand_CanExecute"/>
+    </Window.CommandBindings>
+
+    <Window.InputBindings>
+        <KeyBinding Command="ApplicationCommands.Save" Modifiers="Control" Key="S"/>
+    </Window.InputBindings>
+
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -233,18 +279,19 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                
+
 
                 <!-- TARJETAS (siempre 2) -->
                 <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Cards}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
+                                <!-- Antes: WrapPanel -->
+                                <UniformGrid Columns="2"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 
-                        <!-- Elegir plantilla por IsTotal -->
+                        <!-- (lo demás igual) -->
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <ContentControl>
@@ -266,6 +313,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
+
 
             </Grid>
         </Grid>

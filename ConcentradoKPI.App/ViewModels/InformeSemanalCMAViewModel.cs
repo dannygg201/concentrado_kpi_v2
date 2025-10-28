@@ -66,7 +66,46 @@ namespace ConcentradoKPI.App.ViewModels
         public ContratistaRow Editable { get; } = new();
         public ContratistaRow TotalesFila { get; } = new() { IsTotal = true, Nombre = "Totales" };
 
-        // ✅ Constructor REAL (c/p/w)
+        // =========== MÉTODO NUEVO: hidratar desde la pirámide ===========
+        // 👉 Colócalo tal cual dentro de la clase, por encima o debajo de los constructores
+        private void HydrateFromPiramide(PiramideSeguridadDocument? d)
+        {
+            if (d == null) return;
+
+            int fai = d.FAI1 + d.FAI2 + d.FAI3;
+            int mti = d.MTI1 + d.MTI2 + d.MTI3;
+            int mdi = d.MDI1 + d.MDI2 + d.MDI3;
+            int lti = d.LTI1 + d.LTI2 + d.LTI3;
+
+            int incSinLesion = d.IncidentesSinLesion1 + d.IncidentesSinLesion2;
+            int precursoresTotal = d.Precursores1 + d.Precursores2 + d.Precursores3;
+
+            Editable.TecnicosSeguridad = d.TecnicosSeguridad;
+            Editable.Colaboradores = d.Colaboradores;
+            Editable.HorasTrabajadas = d.HorasTrabajadas;
+
+            Editable.FAI = fai;
+            Editable.MTI = mti;
+            Editable.MDI = mdi;
+            Editable.LTI = lti;
+
+            // TRI típico = MTI + MDI + LTI
+            Editable.TRI = mti + mdi + lti;
+
+            // Incidentes: usamos “sin lesión” (ajústalo si quieres otra cosa)
+            Editable.Incidentes = incSinLesion;
+
+            // Actos
+            Editable.ActosSeguros = d.Seguros;
+            Editable.ActosInseguros = d.Inseguros;
+
+            // Prec. SIF – Comportamiento / Condición (ajustable a tu gusto)
+            Editable.PrecursoresSifComportamiento = precursoresTotal;
+            Editable.PrecursoresSifCondicion = d.Detectadas;
+        }
+        // ================================================================
+
+        // ✅ Constructor REAL (c/p/w) — AQUÍ LLAMAMOS HydrateFromPiramide(...)
         public InformeSemanalCMAViewModel(
             Company c,
             Project p,
@@ -83,6 +122,9 @@ namespace ConcentradoKPI.App.ViewModels
             // Inicial editable
             Editable.Nombre = string.IsNullOrWhiteSpace(nombreInicial) ? c.Name : nombreInicial;
             Editable.Especialidad = especialidadInicial;
+
+            // 🔹 NUEVO: traer datos de la pirámide de esta semana (si existe)
+            HydrateFromPiramide(w.PiramideSeguridad);
 
             // Ligar cambios de Editable a Totales
             Editable.PropertyChanged += (_, __) => RecalcularTotales();

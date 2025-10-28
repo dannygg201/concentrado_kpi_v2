@@ -28,6 +28,10 @@ namespace ConcentradoKPI.App.Models
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
         // Guarda todo lo capturado en la vista Personal Vigente para esta semana
         public PersonalVigenteDocument? PersonalVigente { get; set; }
+        public PiramideSeguridadDocument? PiramideSeguridad { get; set; }
+        public InformeSemanalCmaDocument? InformeSemanalCma { get; set; }
+        public PrecursorSifDocument? PrecursorSif { get; set; }
+        public IncidentesDocument? Incidentes { get; set; }
 
     }
 }
