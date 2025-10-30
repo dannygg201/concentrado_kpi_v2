@@ -24,8 +24,23 @@
             <TextBlock Text="Smart KPI" Foreground="White" Margin="16,0"
                        FontSize="20" FontWeight="Bold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
             <StackPanel Orientation="Horizontal" Margin="8" DockPanel.Dock="Right">
+                <!-- Abrir deshabilitado si ya hay compañía -->
                 <Button Content="Abrir" Margin="4" Padding="12,6"
-                        Command="{Binding ImportCommand}"/>
+                        Command="{Binding ImportCommand}">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <!-- Por defecto deshabilitado -->
+                            <Setter Property="IsEnabled" Value="False"/>
+                            <!-- Si NO hay compañías => habilitar -->
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Companies.Count}" Value="0">
+                                    <Setter Property="IsEnabled" Value="True"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
                 <Button Content="Guardar como" Margin="4" Padding="12,6"
                         Command="{Binding ExportCommand}"/>
             </StackPanel>
@@ -44,59 +59,58 @@
 
             <!-- Título -->
             <TextBlock Text="Compañías"
-               Margin="16,16,16,8"
-               FontWeight="SemiBold"
-               FontSize="14"/>
+                       Margin="16,16,16,8"
+                       FontWeight="SemiBold"
+                       FontSize="14"/>
 
             <!-- Recuadro del árbol con tamaño definido + scroll -->
             <Border Grid.Row="1" Margin="12"
-            BorderBrush="#DDD" BorderThickness="1" CornerRadius="6"
-            Background="White">
-                <!-- DA EL TAMAÑO AL CONTENEDOR, EL TREEVIEW OCUPA ESE ESPACIO Y SCROLLEA -->
+                    BorderBrush="#DDD" BorderThickness="1" CornerRadius="6"
+                    Background="White">
                 <Grid MinHeight="260" Height="Auto">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
+                                  HorizontalScrollBarVisibility="Disabled">
                         <TreeView SelectedItemChanged="TreeView_SelectedItemChanged"
-                          Margin="8">
+                                  Margin="8">
 
-                            <!-- (tus Resources/ContextMenus igual que antes) -->
+                            <!-- ContextMenus -->
                             <TreeView.Resources>
                                 <!-- MENÚ para Compañía -->
                                 <ContextMenu x:Key="CompanyMenu" Opened="CompanyMenu_Opened">
                                     <MenuItem Header="➕ Agregar proyecto"
-                                      Command="{Binding PlacementTarget.Tag.AddProjectCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                              Command="{Binding PlacementTarget.Tag.AddProjectCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     <Separator/>
                                     <MenuItem Header="✏️ Renombrar compañía"
-                                      Command="{Binding PlacementTarget.Tag.RenameCompanyCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                    <MenuItem Header="🗑️ Eliminar compañía"
-                                      Command="{Binding PlacementTarget.Tag.DeleteCompanyCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                              Command="{Binding PlacementTarget.Tag.RenameCompanyCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                    <MenuItem Header="❌ Cerrar compañía"
+                                              Command="{Binding PlacementTarget.Tag.DeleteCompanyCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 </ContextMenu>
 
                                 <!-- MENÚ para Proyecto -->
                                 <ContextMenu x:Key="ProjectMenu" Opened="ProjectMenu_Opened">
                                     <MenuItem Header="➕ Agregar semana"
-                                      Command="{Binding PlacementTarget.Tag.AddWeekCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                              Command="{Binding PlacementTarget.Tag.AddWeekCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     <Separator/>
                                     <MenuItem Header="✏️ Renombrar proyecto"
-                                      Command="{Binding PlacementTarget.Tag.RenameProjectCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                              Command="{Binding PlacementTarget.Tag.RenameProjectCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     <MenuItem Header="🗑️ Eliminar proyecto"
-                                      Command="{Binding PlacementTarget.Tag.DeleteProjectCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                              Command="{Binding PlacementTarget.Tag.DeleteProjectCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 </ContextMenu>
 
                                 <!-- MENÚ para Semana -->
                                 <ContextMenu x:Key="WeekMenu" Opened="WeekMenu_Opened">
                                     <MenuItem Header="✏️ Editar semana"
-                                      Command="{Binding PlacementTarget.Tag.RenameWeekCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                              Command="{Binding PlacementTarget.Tag.RenameWeekCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     <MenuItem Header="🗑️ Eliminar semana"
-                                      Command="{Binding PlacementTarget.Tag.DeleteWeekCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                              Command="{Binding PlacementTarget.Tag.DeleteWeekCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 </ContextMenu>
                             </TreeView.Resources>
 
@@ -107,25 +121,26 @@
 
                             <TreeView.ItemTemplate>
                                 <!-- Nivel 1: Compañía -->
-                                <HierarchicalDataTemplate DataType="{x:Type models:Company}" ItemsSource="{Binding Projects}">
+                                <HierarchicalDataTemplate DataType="{x:Type models:Company}"
+                                                          ItemsSource="{Binding Projects}">
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                       Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
-                                       ContextMenu="{StaticResource CompanyMenu}"/>
+                                               Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                               ContextMenu="{StaticResource CompanyMenu}"/>
                                     <!-- Nivel 2: Proyecto -->
                                     <HierarchicalDataTemplate.ItemTemplate>
-                                        <HierarchicalDataTemplate DataType="{x:Type models:Project}" ItemsSource="{Binding Weeks}">
+                                        <HierarchicalDataTemplate DataType="{x:Type models:Project}"
+                                                                  ItemsSource="{Binding Weeks}">
                                             <TextBlock Text="{Binding Name}"
-                                               Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
-                                               ContextMenu="{StaticResource ProjectMenu}"/>
+                                                       Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                                       ContextMenu="{StaticResource ProjectMenu}"/>
                                             <!-- Nivel 3: Semana -->
                                             <HierarchicalDataTemplate.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type models:WeekData}">
                                                     <TextBlock
-        Text="{Binding WeekNumber, StringFormat=Semana {0}}"
-        Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
-        ContextMenu="{StaticResource WeekMenu}"/>
+                                                        Text="{Binding WeekNumber, StringFormat=Semana {0}}"
+                                                        Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                                        ContextMenu="{StaticResource WeekMenu}"/>
                                                 </DataTemplate>
-
                                             </HierarchicalDataTemplate.ItemTemplate>
                                         </HierarchicalDataTemplate>
                                     </HierarchicalDataTemplate.ItemTemplate>
@@ -135,12 +150,9 @@
                             <!-- Selección con clic derecho -->
                             <TreeView.ItemContainerStyle>
                                 <Style TargetType="TreeViewItem">
-                                    <!-- 🔑 Aquí está la magia: el TreeViewItem sigue el IsExpanded del modelo -->
                                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-
-                                    <!-- Clic derecho selecciona el nodo -->
                                     <EventSetter Event="PreviewMouseRightButtonDown"
-                     Handler="TreeViewItem_PreviewMouseRightButtonDown"/>
+                                                 Handler="TreeViewItem_PreviewMouseRightButtonDown"/>
                                 </Style>
                             </TreeView.ItemContainerStyle>
 
@@ -149,28 +161,39 @@
                 </Grid>
             </Border>
 
-            <!-- Botones fijos, ya no se mueven -->
+            <!-- Botones fijos -->
             <StackPanel Grid.Row="2" Orientation="Vertical" Margin="12,0,12,12">
-                <Button Content="➕ Agregar compañía  "
-        Margin="0,6,0,0"
-        Command="{Binding AddCompanyCommand}"
-        HorizontalContentAlignment="Left"
-        HorizontalAlignment="Left"/>
-
+                <!-- Agregar compañía deshabilitado si ya hay alguna -->
+                <Button Content="➕ Agregar compañía"
+                        Margin="0,6,0,0"
+                        Command="{Binding AddCompanyCommand}"
+                        HorizontalContentAlignment="Left"
+                        HorizontalAlignment="Left">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <!-- Por defecto deshabilitado -->
+                            <Setter Property="IsEnabled" Value="False"/>
+                            <!-- Si NO hay compañías => habilitar -->
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Companies.Count}" Value="0">
+                                    <Setter Property="IsEnabled" Value="True"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
 
                 <Button Content="➕ Agregar proyecto a la compañía seleccionada"
-        Margin="0,6,0,0"
-        Command="{Binding AddProjectCommand}"
-        HorizontalContentAlignment="Left"/>
+                        Margin="0,6,0,0"
+                        Command="{Binding AddProjectCommand}"
+                        HorizontalContentAlignment="Left"/>
 
                 <Button Content="➕ Agregar semana al proyecto seleccionado"
-        Margin="0,6,0,0"
-        Command="{Binding AddWeekCommand}"
-        HorizontalContentAlignment="Left"/>
-
+                        Margin="0,6,0,0"
+                        Command="{Binding AddWeekCommand}"
+                        HorizontalContentAlignment="Left"/>
             </StackPanel>
         </Grid>
-
 
         <!-- CONTENT -->
         <Grid Grid.Row="1" Grid.Column="1" Margin="16">
@@ -193,21 +216,19 @@
 
                 <!-- Botón para abrir la ventana de Personal Vigente -->
                 <Button Margin="0,12,0,0"
-        Padding="12,6"
-        Width="Auto"
-        HorizontalAlignment="Left"
-        Command="{Binding OpenPersonalCommand}">
+                        Padding="12,6"
+                        Width="Auto"
+                        HorizontalAlignment="Left"
+                        Command="{Binding OpenPersonalCommand}">
                     <TextBlock>
-        <Run Text="Abrir "/>
-        <Run Text="Semana " />
-        <Run Text="{Binding SelectedWeek.WeekNumber}" />
+                        <Run Text="Abrir "/>
+                        <Run Text="Semana " />
+                        <Run Text="{Binding SelectedWeek.WeekNumber}" />
                     </TextBlock>
                     <Button.Style>
                         <Style TargetType="Button">
-                            <!-- Deshabilitado automáticamente por el comando -->
                             <Setter Property="IsEnabled" Value="{Binding OpenPersonalCommand.CanExecute, RelativeSource={RelativeSource Self}}"/>
                             <Style.Triggers>
-                                <!-- Si no hay semana seleccionada, que diga solo "Abrir" -->
                                 <DataTrigger Binding="{Binding SelectedWeek}" Value="{x:Null}">
                                     <Setter Property="Content" Value="Abrir"/>
                                 </DataTrigger>
@@ -215,23 +236,17 @@
                         </Style>
                     </Button.Style>
                 </Button>
-
-
-
-
-
             </StackPanel>
 
-            <!-- Estado vacío: se muestra cuando no hay compañías cargadas -->
+            <!-- Estado vacío -->
             <Border Grid.Row="2" Padding="20" Margin="0,0,0,12"
-        BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="8" Background="#FAFAFA">
+                    BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="8" Background="#FAFAFA">
                 <TextBlock Text="Abre un archivo (.kpi.json) o agrega una compañía para empezar."
-               FontSize="14" Foreground="#666" TextWrapping="Wrap">
+                           FontSize="14" Foreground="#666" TextWrapping="Wrap">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
-                                <!-- Visible cuando Companies.Count == 0 -->
                                 <DataTrigger Binding="{Binding Companies.Count}" Value="0">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
@@ -247,7 +262,6 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
-                                <!-- Ocultar el mensaje cuando no hay compañías para que se vea el estado vacío -->
                                 <DataTrigger Binding="{Binding Companies.Count}" Value="0">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
@@ -256,7 +270,6 @@
                     </TextBlock.Style>
                 </TextBlock>
             </Border>
-
         </Grid>
     </Grid>
 </Window>

@@ -1,26 +1,61 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using ConcentradoKPI.App.Models;
-using System;
+﻿using System;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using ConcentradoKPI.App.Models;
 
 namespace ConcentradoKPI.App.ViewModels
 {
-    public class PiramideSeguridadViewModel : INotifyPropertyChanged
+    public class PiramideSeguridadViewModel : INotifyPropertyChanged, IDisposable
     {
         public Company Company { get; }
         public Project Project { get; }
         public WeekData Week { get; }
 
+        // ====== Handler para desuscribirnos de Live ======
+        private PropertyChangedEventHandler? _liveHandler;
+
+        // ====== SYNC con Week.Live ======
+        private void PullFromLive()
+        {
+            if (Week?.Live == null) return;
+
+            Colaboradores = Week.Live.ColaboradoresTotal.ToString(CultureInfo.InvariantCulture);
+            HorasTrabajadas = Week.Live.HorasTrabajadasTotal.ToString(CultureInfo.InvariantCulture);
+            TecnicosSeguridad = Week.Live.TecnicosSeguridadTotal.ToString(CultureInfo.InvariantCulture);
+        }
+
         public PiramideSeguridadViewModel(Company c, Project p, WeekData w)
         {
-            Company = c; Project = p; Week = w;
+            Company = c;
+            Project = p;
+            Week = w;
 
-            // ===== Totales desde Personal Vigente =====
-            RecalculateFromWeek();
+            // Si hay Live, úsalo como fuente de verdad y escucha cambios
+            if (Week?.Live != null)
+            {
+                PullFromLive();
 
-            // ===== Mocks iniciales restantes (lo que no depende de Personal Vigente) =====
+                _liveHandler = (_, e) =>
+                {
+                    if (string.IsNullOrEmpty(e.PropertyName) ||
+                        e.PropertyName == nameof(LiveMetrics.ColaboradoresTotal) ||
+                        e.PropertyName == nameof(LiveMetrics.HorasTrabajadasTotal) ||
+                        e.PropertyName == nameof(LiveMetrics.TecnicosSeguridadTotal))
+                    {
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(PullFromLive);
+                    }
+                };
+                Week.Live.PropertyChanged += _liveHandler;
+            }
+            else
+            {
+                // Modo offline (rehidratar desde Week.PersonalVigente)
+                RecalculateFromWeek();
+            }
+
+            // ===== Valores iniciales para lo demás de la vista =====
             MTH = "MTH";
             YTD = DateTime.Now.Year.ToString();
 
@@ -31,7 +66,6 @@ namespace ConcentradoKPI.App.ViewModels
             CondicionesDetectadas = "0"; CondicionesCorregidas = "0"; AvanceCondiciones = "0%";
             AvanceProgramaPct = "0";
 
-            // Si quieres que Companias/TecnicosSeguridad también vengan de algún lado, aquí mismo los asignas.
             if (string.IsNullOrWhiteSpace(Companias)) Companias = "0";
             if (string.IsNullOrWhiteSpace(TecnicosSeguridad)) TecnicosSeguridad = "0";
             if (string.IsNullOrWhiteSpace(WithoutLTIs)) WithoutLTIs = "0 días";
@@ -47,24 +81,27 @@ namespace ConcentradoKPI.App.ViewModels
         }
 
         /// <summary>
-        /// Relee Week.PersonalVigente para calcular Colaboradores y HorasTrabajadas.
-        /// Llama este método si actualizas Week.PersonalVigente en runtime y quieres refrescar la pirámide.
+        /// Relee Week.PersonalVigente para calcular Colaboradores, HorasTrabajadas y Técnicos de Seguridad.
+        /// Úsalo solo si NO tienes Live o cuando hidrates desde archivo.
         /// </summary>
         public void RecalculateFromWeek()
         {
             var lista = Week?.PersonalVigente?.Personal ?? Enumerable.Empty<PersonRow>();
+
             var colaboradores = lista.Count();
             var horas = lista.Sum(r => r?.HHSemana ?? 0);
+            var tecnicosSeg = lista.Count(r => r?.EsTecnicoSeguridad == true);
 
             Colaboradores = colaboradores.ToString(CultureInfo.InvariantCulture);
             HorasTrabajadas = horas.ToString(CultureInfo.InvariantCulture);
+            TecnicosSeguridad = tecnicosSeg.ToString(CultureInfo.InvariantCulture);
         }
 
-        // Cabeceras
+        // ===== Cabeceras =====
         string _MTH = ""; public string MTH { get => _MTH; set { _MTH = value; OnPropertyChanged(); } }
         string _YTD = ""; public string YTD { get => _YTD; set { _YTD = value; OnPropertyChanged(); } }
 
-        // Pirámide
+        // ===== Pirámide =====
         string _LTI = "0"; public string LTI { get => _LTI; set { _LTI = value; OnPropertyChanged(); } }
         string _MDI = "0"; public string MDI { get => _MDI; set { _MDI = value; OnPropertyChanged(); } }
         string _MTI = "0"; public string MTI { get => _MTI; set { _MTI = value; OnPropertyChanged(); } }
@@ -79,30 +116,25 @@ namespace ConcentradoKPI.App.ViewModels
         string _AvC = "0%"; public string AvanceCondiciones { get => _AvC; set { _AvC = value; OnPropertyChanged(); } }
         string _AvP = "0"; public string AvanceProgramaPct { get => _AvP; set { _AvP = value; OnPropertyChanged(); } }
 
-        // Laterales
+        // ===== Laterales =====
         string _Comp = "0"; public string Companias { get => _Comp; set { _Comp = value; OnPropertyChanged(); } }
-        string _Col = "0"; public string Colaboradores { get => _Col; set { _Col = value; OnPropertyChanged(); } }
-        string _Tec = "0"; public string TecnicosSeguridad { get => _Tec; set { _Tec = value; OnPropertyChanged(); } }
-        string _Hrs = "0"; public string HorasTrabajadas { get => _Hrs; set { _Hrs = value; OnPropertyChanged(); } }
+
+        string _Col = "0";
+        public string Colaboradores { get => _Col; set { if (_Col == value) return; _Col = value; OnPropertyChanged(); } }
+
+        string _Tec = "0";
+        public string TecnicosSeguridad { get => _Tec; set { if (_Tec == value) return; _Tec = value; OnPropertyChanged(); } }
+
+        string _Hrs = "0";
+        public string HorasTrabajadas { get => _Hrs; set { if (_Hrs == value) return; _Hrs = value; OnPropertyChanged(); } }
+
         string _W = ""; public string WithoutLTIs { get => _W; set { _W = value; OnPropertyChanged(); } }
         string _LR = ""; public string LastRecord { get => _LR; set { _LR = value; OnPropertyChanged(); } }
 
-        // ===== Aliases para que coincidan con el XAML =====
-        public string Detectadas
-        {
-            get => CondicionesDetectadas;
-            set { if (CondicionesDetectadas != value) { CondicionesDetectadas = value; OnPropertyChanged(); } }
-        }
-        public string Corregidas
-        {
-            get => CondicionesCorregidas;
-            set { if (CondicionesCorregidas != value) { CondicionesCorregidas = value; OnPropertyChanged(); } }
-        }
-        public string Avance
-        {
-            get => AvanceCondiciones;
-            set { if (AvanceCondiciones != value) { AvanceCondiciones = value; OnPropertyChanged(); } }
-        }
+        // ===== Aliases para XAML =====
+        public string Detectadas { get => CondicionesDetectadas; set { if (CondicionesDetectadas != value) { CondicionesDetectadas = value; OnPropertyChanged(); } } }
+        public string Corregidas { get => CondicionesCorregidas; set { if (CondicionesCorregidas != value) { CondicionesCorregidas = value; OnPropertyChanged(); } } }
+        public string Avance { get => AvanceCondiciones; set { if (AvanceCondiciones != value) { AvanceCondiciones = value; OnPropertyChanged(); } } }
 
         // ===== Incidentes sin lesión (2 cuadros) =====
         string _Inc1 = "0"; public string IncidentesSinLesion1 { get => _Inc1; set { _Inc1 = value; OnPropertyChanged(); } }
@@ -130,7 +162,7 @@ namespace ConcentradoKPI.App.ViewModels
         string _LTI2 = "0"; public string LTI2 { get => _LTI2; set { _LTI2 = value; OnPropertyChanged(); } }
         string _LTI3 = "0"; public string LTI3 { get => _LTI3; set { _LTI3 = value; OnPropertyChanged(); } }
 
-        // ===== Efectividad (lo pide el XAML) =====
+        // ===== Efectividad =====
         string _Efect = "0"; public string Efectividad { get => _Efect; set { _Efect = value; OnPropertyChanged(); } }
 
         // Territorios (rojo/verde)
@@ -140,5 +172,12 @@ namespace ConcentradoKPI.App.ViewModels
         public event PropertyChangedEventHandler? PropertyChanged;
         void OnPropertyChanged([CallerMemberName] string? n = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+
+        // Limpieza
+        public void Dispose()
+        {
+            if (Week?.Live != null && _liveHandler != null)
+                Week.Live.PropertyChanged -= _liveHandler;
+        }
     }
 }

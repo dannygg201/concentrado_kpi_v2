@@ -29,15 +29,25 @@ namespace ConcentradoKPI.App.Views
             }
             else
             {
-                // Dummies mínimos si alguien abre sin c/p/w en runtime
                 var c = new Company { Name = "N/A" };
                 var p = new Project { Name = "N/A" };
                 var w = new WeekData { WeekNumber = 1 };
+
                 DataContext = new InformeSemanalCMAViewModel(c, p, w, nombreInicial: c.Name);
+
+                // 🔔 Ping al cargar
+                Loaded += (_, __) =>
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeAsync(
+                        () => w.Live.NotifyAll(),
+                        System.Windows.Threading.DispatcherPriority.Background
+                    );
+                };
             }
 
             WireShell();
         }
+
 
         // ---- Constructor real (con c/p/w) ----
         public InformeSemanalCmaWindow(Company c, Project p, WeekData w)
@@ -47,12 +57,21 @@ namespace ConcentradoKPI.App.Views
             _project = p;
             _week = w;
 
-            // ✅ ahora el TopBar ve Company/Project/Week
             DataContext = new InformeSemanalCMAViewModel(c, p, w, nombreInicial: c?.Name ?? "", especialidadInicial: "");
+
+            // 🔔 Ping al cargar
+            Loaded += (_, __) =>
+            {
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeAsync(
+                    () => _week!.Live.NotifyAll(),
+                    System.Windows.Threading.DispatcherPriority.Background
+                );
+            };
 
             HydrateFromWeek();
             WireShell();
         }
+
 
         private void WireShell()
         {

@@ -25,9 +25,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Barra superior + NavBar -->
             <RowDefinition Height="*"/>
-            <!-- Contenido scroll -->
         </Grid.RowDefinitions>
 
         <!-- TOP: barra + NavBar -->
@@ -35,7 +33,6 @@
             <controls:TopBar Title="Personal vigente"/>
             <controls:NavBar DataContext="{StaticResource Shell}"/>
         </StackPanel>
-
 
         <!-- CONTENIDO con scroll -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -124,6 +121,18 @@
                             <DataGridTextColumn Header="NOMBRE" Binding="{Binding Nombre, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
                             <DataGridTextColumn Header="No. de Afiliación" Binding="{Binding Afiliacion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140"/>
                             <DataGridTextColumn Header="Puesto" Binding="{Binding Puesto, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160"/>
+
+                            <!-- Nuevo: marca Técnico de Seguridad -->
+                            <DataGridTemplateColumn Header="TecSeg" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding EsTecnicoSeguridad, Converter={StaticResource BoolToSiNoConverter}}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
                             <DataGridTextColumn Header="D" Binding="{Binding D, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="42"/>
                             <DataGridTextColumn Header="L" Binding="{Binding L, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="42"/>
                             <DataGridTextColumn Header="M" Binding="{Binding M, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="42"/>
@@ -146,19 +155,34 @@
 
                 <Border Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="White">
                     <Grid>
+                        <!-- Columnas 0..11 -->
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*"/>
+                            <!-- 0: Nombre -->
                             <ColumnDefinition Width="1.2*"/>
+                            <!-- 1: Afiliación -->
                             <ColumnDefinition Width="1.2*"/>
+                            <!-- 2: Puesto -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 3: D -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 4: L -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 5: M -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 6: M -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 7: J -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 8: V -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 9: S -->
                             <ColumnDefinition Width="Auto"/>
+                            <!-- 10: Tec. Seguridad (Sí/No) -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 11: Botones -->
                         </Grid.ColumnDefinitions>
+
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -175,6 +199,7 @@
                         <TextBlock Grid.Row="0" Grid.Column="7" HorizontalAlignment="Center" Text="J" Margin="0,4,6,0"/>
                         <TextBlock Grid.Row="0" Grid.Column="8" HorizontalAlignment="Center" Text="V" Margin="0,4,6,0"/>
                         <TextBlock Grid.Row="0" Grid.Column="9" HorizontalAlignment="Center" Text="S" Margin="0,4,6,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="10" Text="Tec. Seguridad" Margin="8,0,0,0"/>
 
                         <!-- Campos -->
                         <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding NewNombre, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,8,0"/>
@@ -189,8 +214,30 @@
                         <TextBox Grid.Row="1" Grid.Column="8" Width="36" TextAlignment="Center" Text="{Binding NewV, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
                         <TextBox Grid.Row="1" Grid.Column="9" Width="36" TextAlignment="Center" Text="{Binding NewS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
 
+                        <!-- Sí / No en una sola fila -->
+                        <Grid Grid.Row="1" Grid.Column="10" Margin="8,4,8,0" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <RadioButton Grid.Column="0"
+                                         GroupName="TecSegNew"
+                                         Content="Sí"
+                                         IsChecked="{Binding NewEsTecnicoSeguridad, Mode=TwoWay}"
+                                         VerticalAlignment="Center"/>
+
+                            <RadioButton Grid.Column="2"
+                                         GroupName="TecSegNew"
+                                         Content="No"
+                                         IsChecked="{Binding NewEsTecnicoSeguridad, Mode=TwoWay, Converter={StaticResource InverseBoolConverter}}"
+                                         VerticalAlignment="Center"/>
+                        </Grid>
+
                         <!-- Botones -->
-                        <StackPanel Grid.Row="1" Grid.Column="10" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,4,0,0">
+                        <StackPanel Grid.Row="1" Grid.Column="11"
+                                    Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,4,0,0">
                             <Button Content="Agregar" Margin="0,0,6,0" Padding="12,4" Command="{Binding AddPersonCommand}"/>
                             <Button Content="Guardar" Margin="0,0,6,0" Padding="12,4" Command="{Binding ApplyEditCommand}"/>
                             <Button Content="Eliminar" Margin="0,0,6,0" Padding="12,4" Command="{Binding DeleteSelectedCommand}"/>

@@ -21,17 +21,20 @@ namespace ConcentradoKPI.App.Models
         public List<TableData>? Tables { get; set; }
         public string? Notes { get; set; }
 
-        public override string ToString() => $"Semana {WeekNumber}";
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? p = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
-        // Guarda todo lo capturado en la vista Personal Vigente para esta semana
+        // Documentos persistidos (pueden estar desincronizados del “en vivo”)
         public PersonalVigenteDocument? PersonalVigente { get; set; }
         public PiramideSeguridadDocument? PiramideSeguridad { get; set; }
         public InformeSemanalCmaDocument? InformeSemanalCma { get; set; }
         public PrecursorSifDocument? PrecursorSif { get; set; }
         public IncidentesDocument? Incidentes { get; set; }
 
+        // 🔴 ÚNICA fuente de verdad en vivo (inmutable en referencia)
+        public LiveMetrics Live { get; } = new LiveMetrics();
+
+        public override string ToString() => $"Semana {WeekNumber}";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? p = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
     }
 }

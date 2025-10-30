@@ -14,6 +14,9 @@ namespace ConcentradoKPI.App.Models
         // Asistencia (D,L,M,MM,J,V,S)
         private int _d, _l, _m, _mm, _j, _v, _s;
 
+        // 🔹 NUEVO: backing field para TecSeg con notificación
+        private bool _esTecnicoSeguridad;
+
         public int Numero
         {
             get => _numero;
@@ -52,6 +55,19 @@ namespace ConcentradoKPI.App.Models
         {
             get => _hhSemana;
             private set { if (_hhSemana != value) { _hhSemana = value; OnPropertyChanged(); } }
+        }
+
+        // 🔹 Propiedad con notificación (impacta DataGrid y bindings)
+        public bool EsTecnicoSeguridad
+        {
+            get => _esTecnicoSeguridad;
+            set { if (_esTecnicoSeguridad != value) { _esTecnicoSeguridad = value; OnPropertyChanged(); } }
+        }
+
+        // Constructor (opcional: default en false)
+        public PersonRow()
+        {
+            _esTecnicoSeguridad = false;
         }
 
         private static int Clamp(int v) => Math.Max(0, Math.Min(24, v));

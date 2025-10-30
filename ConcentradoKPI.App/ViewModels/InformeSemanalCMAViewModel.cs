@@ -65,6 +65,17 @@ namespace ConcentradoKPI.App.ViewModels
         // Puedes seguir usando estos para lógica interna
         public ContratistaRow Editable { get; } = new();
         public ContratistaRow TotalesFila { get; } = new() { IsTotal = true, Nombre = "Totales" };
+        // ==== SYNC con Week.Live desde la fila Editable ====
+        
+
+        private void PullFromLiveToEditable()
+        {
+            if (Week?.Live == null) return;
+            Editable.Colaboradores = Week.Live.ColaboradoresTotal;
+            Editable.HorasTrabajadas = Week.Live.HorasTrabajadasTotal;
+            Editable.TecnicosSeguridad = Week.Live.TecnicosSeguridadTotal;
+        }
+
 
         // =========== MÉTODO NUEVO: hidratar desde la pirámide ===========
         // 👉 Colócalo tal cual dentro de la clase, por encima o debajo de los constructores
@@ -107,11 +118,11 @@ namespace ConcentradoKPI.App.ViewModels
 
         // ✅ Constructor REAL (c/p/w) — AQUÍ LLAMAMOS HydrateFromPiramide(...)
         public InformeSemanalCMAViewModel(
-            Company c,
-            Project p,
-            WeekData w,
-            string nombreInicial = "",
-            string especialidadInicial = "")
+     Company c,
+     Project p,
+     WeekData w,
+     string nombreInicial = "",
+     string especialidadInicial = "")
         {
             Company = c;
             Project = p;
@@ -123,17 +134,33 @@ namespace ConcentradoKPI.App.ViewModels
             Editable.Nombre = string.IsNullOrWhiteSpace(nombreInicial) ? c.Name : nombreInicial;
             Editable.Especialidad = especialidadInicial;
 
-            // 🔹 NUEVO: traer datos de la pirámide de esta semana (si existe)
-            HydrateFromPiramide(w.PiramideSeguridad);
+            // 1) Pull inicial DESDE Live
+            PullFromLiveToEditable();
 
-            // Ligar cambios de Editable a Totales
+            // 2) Suscripción: cuando cambie Live, volvemos a hacer pull (en hilo UI)
+            if (Week?.Live != null)
+            {
+                Week.Live.PropertyChanged += (_, e) =>
+                {
+                    if (string.IsNullOrEmpty(e.PropertyName) ||
+                        e.PropertyName == nameof(LiveMetrics.ColaboradoresTotal) ||
+                        e.PropertyName == nameof(LiveMetrics.HorasTrabajadasTotal) ||
+                        e.PropertyName == nameof(LiveMetrics.TecnicosSeguridadTotal))
+                    {
+                        System.Windows.Application.Current.Dispatcher.InvokeAsync(PullFromLiveToEditable);
+                    }
+                };
+            }
+
+            // 3) Cuando cambie algo del Editable, SOLO recalculamos totales (NO empujar a Live)
             Editable.PropertyChanged += (_, __) => RecalcularTotales();
             RecalcularTotales();
 
-            // Llenar la colección que usa la UI
+            // 4) Llenar ItemsControl
             Cards.Add(Editable);
             Cards.Add(TotalesFila);
         }
+
 
         // 🧪 Constructor para DISEÑO/PRUEBA (strings) — mantiene compatibilidad
         public InformeSemanalCMAViewModel(

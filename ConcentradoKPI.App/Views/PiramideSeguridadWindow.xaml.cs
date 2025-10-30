@@ -23,28 +23,44 @@ namespace ConcentradoKPI.App.Views
         {
             InitializeComponent();
 
-            // En diseñador: pon un VM “dummy” para poder ver la UI.
             if (DesignerProperties.GetIsInDesignMode(this))
             {
+                var wLocal = new WeekData();
                 DataContext = new PiramideSeguridadViewModel(
                     c: new Company { Name = "Demo Co." },
                     p: new Project { Name = "Proyecto Demo" },
-                    w: new WeekData()
+                    w: wLocal
                 );
+
+                // 🔔 Ping en diseño (opcional)
+                Loaded += (_, __) =>
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeAsync(
+                        () => wLocal.Live.NotifyAll(),
+                        System.Windows.Threading.DispatcherPriority.Background
+                    );
+                };
                 return;
             }
 
-            // En runtime, si alguien abre esta ventana sin pasar c/p/w:
-            if (DataContext is not PiramideSeguridadViewModel)
+            // Runtime sin c/p/w explícitos:
             {
+                var wLocal = new WeekData();
                 DataContext = new PiramideSeguridadViewModel(
                     c: new Company { Name = "N/A" },
                     p: new Project { Name = "N/A" },
-                    w: new WeekData()
+                    w: wLocal
                 );
+
+                Loaded += (_, __) =>
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeAsync(
+                        () => wLocal.Live.NotifyAll(),
+                        System.Windows.Threading.DispatcherPriority.Background
+                    );
+                };
             }
 
-            // Intenta configurar el Shell si existe como recurso
             _shell = Resources["Shell"] as ShellViewModel;
             if (_shell != null)
             {
@@ -52,6 +68,7 @@ namespace ConcentradoKPI.App.Views
                 _shell.NavigateRequested += OnNavigateRequested;
             }
         }
+
 
         // ===== Constructor CON parámetros =====
         public PiramideSeguridadWindow(Company c, Project p, WeekData w)
@@ -66,6 +83,15 @@ namespace ConcentradoKPI.App.Views
             {
                 DataContext = new PiramideSeguridadViewModel(c, p, w);
             }
+
+            // 🔔 Ping al cargar
+            Loaded += (_, __) =>
+            {
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeAsync(
+                    () => _week!.Live.NotifyAll(),
+                    System.Windows.Threading.DispatcherPriority.Background
+                );
+            };
 
             _shell = Resources["Shell"] as ShellViewModel;
             if (_shell != null)

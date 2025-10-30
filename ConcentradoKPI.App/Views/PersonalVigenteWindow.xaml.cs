@@ -28,6 +28,15 @@ namespace ConcentradoKPI.App.Views
 
             // ⬇️ MUY IMPORTANTE: DataContext con el VM que hidrata la vista
             DataContext = new PersonalVigenteViewModel(c, p, w);
+
+            Loaded += (_, __) =>
+            {
+                // Dispatcher para asegurar hilo UI y ejecutar después del primer render
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeAsync(
+                    () => _week.Live.NotifyAll(),
+                    System.Windows.Threading.DispatcherPriority.Background
+                );
+            };
             // Shell de ESTA ventana (declarado en el XAML: <vm:ShellViewModel x:Key="Shell"/>)
             if (Resources["Shell"] is ShellViewModel shell)
             {
