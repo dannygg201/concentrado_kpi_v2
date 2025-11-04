@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace ConcentradoKPI.App.Models
 {
@@ -23,6 +24,11 @@ namespace ConcentradoKPI.App.Models
 
         // Documentos persistidos (pueden estar desincronizados del “en vivo”)
         public PersonalVigenteDocument? PersonalVigente { get; set; }
+        public PersonalVigenteDocument? PersonalVigenteDocument
+        {
+            get => PersonalVigente;
+            set => PersonalVigente = value;
+        }
         public PiramideSeguridadDocument? PiramideSeguridad { get; set; }
         public InformeSemanalCmaDocument? InformeSemanalCma { get; set; }
         public PrecursorSifDocument? PrecursorSif { get; set; }

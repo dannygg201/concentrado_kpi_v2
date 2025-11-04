@@ -53,6 +53,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <!-- Fila 1 -->
@@ -89,11 +90,17 @@
                                  Text="{Binding NumeroProveedor, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="8,4,0,4"/>
 
-                        <!-- Fila 5 -->
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Dirección legal:" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"
-                                 Text="{Binding DireccionLegal, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="8,4,0,4"/>
+                        <!-- Fila 5 (NUEVA): Orden de compra -->
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="Orden de compra:" VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="4" Grid.Column="3"
+                                   Text="{Binding OrdenCompra, UpdateSourceTrigger=PropertyChanged}"
+                                   Margin="8,4,0,4"/>
+
+                        <!-- Fila 6 (moved): Dirección legal -->
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Dirección legal:" VerticalAlignment="Center"/>
+                        <TextBox   Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3"
+                                   Text="{Binding DireccionLegal, UpdateSourceTrigger=PropertyChanged}"
+                                   Margin="8,4,0,4"/>
                     </Grid>
                 </Border>
 
@@ -244,6 +251,16 @@
                         </StackPanel>
                     </Grid>
                 </Border>
+                <!-- Observaciones (por semana, no se hereda) -->
+                <TextBlock Text="Observaciones" Margin="0,16,0,6" FontWeight="SemiBold"/>
+                <Border Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="White">
+                    <TextBox Text="{Binding Observaciones, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             MinHeight="90"/>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
     </Grid>

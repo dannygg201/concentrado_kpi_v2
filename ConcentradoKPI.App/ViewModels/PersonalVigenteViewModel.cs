@@ -32,9 +32,14 @@ namespace ConcentradoKPI.App.ViewModels
 
         private string? _numeroProveedor;
         public string? NumeroProveedor { get => _numeroProveedor; set { _numeroProveedor = value; OnPropertyChanged(); } }
+        private string? _ordenCompra;
+        public string? OrdenCompra { get => _ordenCompra; set { _ordenCompra = value; OnPropertyChanged(); } }
 
         private string? _direccionLegal;
         public string? DireccionLegal { get => _direccionLegal; set { _direccionLegal = value; OnPropertyChanged(); } }
+
+        private string? _observaciones;
+        public string? Observaciones { get => _observaciones; set { _observaciones = value; OnPropertyChanged(); } }
 
         // Nuevo campo Sí/No
         private bool _newEsTecnicoSeguridad;
@@ -145,7 +150,7 @@ namespace ConcentradoKPI.App.ViewModels
             Week = w;
 
             // Cargar datos previos si existen
-            var doc = w.PersonalVigente;
+            var doc = w.PersonalVigenteDocument;
             if (doc != null)
             {
                 RazonSocial = doc.RazonSocial;
@@ -154,7 +159,9 @@ namespace ConcentradoKPI.App.ViewModels
                 RFCCompania = doc.RFCCompania;
                 DireccionLegal = doc.DireccionLegal;
                 NumeroProveedor = doc.NumeroProveedor;
+                OrdenCompra = doc.OrdenCompra;
                 Fecha = doc.Fecha;
+                Observaciones = doc.Observaciones;
 
                 Personas.Clear();
                 foreach (var r in doc.Personal ?? Enumerable.Empty<PersonRow>())

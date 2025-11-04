@@ -249,10 +249,21 @@ namespace ConcentradoKPI.App.ViewModels
             SelectedCompany!.IsExpanded = true;
             SelectedProject.IsExpanded = true;
 
-            var week = new WeekData { WeekNumber = weekNum, Notes = $"Semana {weekNum} creada" };
+            // Crear la semana
+            var week = new WeekData
+            {
+                WeekNumber = weekNum,
+                Notes = $"Semana {weekNum} creada"
+            };
+
+            // === PRELLENADO desde la semana previa más reciente ===
+            CarryOverService.ApplyFromPrevious(SelectedProject!, week);
+
+            // Agregar al proyecto y seleccionar
             SelectedProject.Weeks.Add(week);
             SelectedWeek = week;
         }
+
 
         private void RenameCompany()
         {
@@ -710,10 +721,10 @@ namespace ConcentradoKPI.App.ViewModels
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    
 
 
-    private string? AskText(string title, string prompt, string? initial = null)
+
+        private string? AskText(string title, string prompt, string? initial = null)
         {
             // Busca ventana activa (MainWindow)
             var owner = Application.Current?.Windows.Count > 0 ? Application.Current.Windows[0] : null;
@@ -724,4 +735,316 @@ namespace ConcentradoKPI.App.ViewModels
             return dlg.ShowDialog() == true ? dlg.ResultText : null;
         }
 
-    } }
+        // ==== Helpers de CARRY OVER (PÉGALOS AQUÍ, DENTRO DE LA CLASE) ====
+
+        /// Devuelve la semana existente más reciente con WeekNumber menor a target.
+        private WeekData? GetMostRecentPreviousWeek(Project project, int newWeekNumber)
+            => project.Weeks
+                      .Where(w => w.WeekNumber < newWeekNumber)
+                      .OrderByDescending(w => w.WeekNumber)
+                      .FirstOrDefault();
+
+        /// Aplica el prellenado (empresa ya está en Company; aquí tratamos Personal Vigente y Pirámide).
+        private void ApplyCarryOverFromPrevious(Project project, WeekData targetWeek)
+        {
+            var prev = GetMostRecentPreviousWeek(project, targetWeek.WeekNumber);
+            if (prev == null) return;
+
+            // === Diagnóstico simple (para saber de dónde vamos a clonar) ===
+            try
+            {
+                bool hasPvd = prev.GetType().GetProperty("PersonalVigenteDocument") != null;
+                bool hasPirS = prev.GetType().GetProperty("PiramideSeguridad") != null;
+
+                MessageBox.Show(
+                    "Prev: " + prev.WeekNumber + "\n" +
+                    "Tables: " + (prev.Tables != null ? prev.Tables.Count : 0) + "\n" +
+                    "Pyramid (SafetyPyramid): " + (prev.Pyramid != null ? "si" : "no") + "\n" +
+                    "Tiene PersonalVigenteDocument: " + (hasPvd ? "si" : "no") + "\n" +
+                    "Tiene PiramideSeguridad: " + (hasPirS ? "si" : "no"),
+                    "CarryOver - Inspect",
+                    MessageBoxButton.OK, MessageBoxImage.Information
+                );
+            }
+            catch { /* no bloquear */ }
+
+            bool clonedSomething = false;
+
+            // ====== OPCIÓN A: Esquema por Tables + SafetyPyramid ======
+
+            // 1) Personal Vigente por tablas (clonar filas, resetear horas a 0)
+            if (prev.Tables != null && prev.Tables.Count > 0)
+            {
+                targetWeek.Tables ??= new List<TableData>();
+                targetWeek.Tables.Clear();
+
+                foreach (var t in prev.Tables)
+                {
+                    // Si quisieras solo una tabla específica:
+                    // if (!string.Equals(t.Name, "Personal Vigente", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    targetWeek.Tables.Add(CloneTableResetHours(t));
+                    clonedSomething = true;
+                }
+            }
+
+            // 2) Pirámide (SafetyPyramid)
+            if (prev.Pyramid != null)
+            {
+                targetWeek.Pyramid = new SafetyPyramid
+                {
+                    UnsafeActs = prev.Pyramid.UnsafeActs,
+                    UnsafeConditions = prev.Pyramid.UnsafeConditions,
+                    NearMisses = prev.Pyramid.NearMisses,
+                    FirstAids = prev.Pyramid.FirstAids,
+                    MedicalTreatments = prev.Pyramid.MedicalTreatments,
+                    LostTimeInjuries = prev.Pyramid.LostTimeInjuries,
+                    Fatalities = prev.Pyramid.Fatalities,
+                    FindingsCorrected = prev.Pyramid.FindingsCorrected,
+                    FindingsTotal = prev.Pyramid.FindingsTotal,
+                    TrainingsCompleted = prev.Pyramid.TrainingsCompleted,
+                    TrainingsPlanned = prev.Pyramid.TrainingsPlanned,
+                    AuditsCompleted = prev.Pyramid.AuditsCompleted,
+                    AuditsPlanned = prev.Pyramid.AuditsPlanned
+                };
+                clonedSomething = true;
+            }
+
+            // 3) KPIs: si alguno es de horas → 0
+            if (prev.Kpis != null && prev.Kpis.Count > 0)
+            {
+                targetWeek.Kpis = prev.Kpis
+                    .Select(k => new KpiValue
+                    {
+                        Name = k.Name,
+                        Unit = k.Unit,
+                        Value = IsHoursField(k.Name) ? 0 : k.Value
+                    })
+                    .ToList();
+                clonedSomething = true;
+            }
+
+            // ====== OPCIÓN B (fallback): propiedades alternas por reflexión ======
+            // Solo entra si no clonamos nada con Tables/Pyramid/Kpis.
+            if (!clonedSomething)
+            {
+                try
+                {
+                    // PersonalVigenteDocument (si existe en WeekData)
+                    var pvdProp = prev.GetType().GetProperty("PersonalVigenteDocument");
+                    if (pvdProp != null)
+                    {
+                        var prevPvd = pvdProp.GetValue(prev);
+                        if (prevPvd != null)
+                        {
+                            var targetPvdProp = typeof(WeekData).GetProperty("PersonalVigenteDocument");
+                            if (targetPvdProp != null)
+                            {
+                                var pvdType = pvdProp.PropertyType;
+                                var newPvd = Activator.CreateInstance(pvdType);
+
+                                // Campos típicos de empresa
+                                string[] empresaProps = { "EmpresaNombre", "RazonSocial", "RFC", "DomicilioFiscal", "Representante", "TelefonoContacto", "CorreoContacto" };
+                                foreach (var nm in empresaProps)
+                                {
+                                    var src = pvdType.GetProperty(nm);
+                                    var dst = pvdType.GetProperty(nm);
+                                    if (src != null && dst != null) dst.SetValue(newPvd, src.GetValue(prevPvd));
+                                }
+
+                                // Listado de personal con horas = 0 si existe
+                                var personalProp = pvdType.GetProperty("PersonalVigente");
+                                if (personalProp != null)
+                                {
+                                    var prevList = personalProp.GetValue(prevPvd) as System.Collections.IEnumerable;
+                                    if (prevList != null)
+                                    {
+                                        var listType = personalProp.PropertyType;
+                                        var newList = Activator.CreateInstance(listType) as System.Collections.IList;
+
+                                        foreach (var per in prevList)
+                                        {
+                                            var perType = per.GetType();
+                                            var newPer = Activator.CreateInstance(perType);
+
+                                            string[] fields = { "Id", "NombreCompleto", "Puesto", "Area", "NoEmpleado", "TipoContrato", "Turno" };
+                                            foreach (var f in fields)
+                                            {
+                                                var pp = perType.GetProperty(f);
+                                                if (pp != null)
+                                                    perType.GetProperty(f)?.SetValue(newPer, pp.GetValue(per));
+                                            }
+
+                                            var horasProp = perType.GetProperty("HorasTrabajadas");
+                                            if (horasProp != null)
+                                            {
+                                                if (horasProp.PropertyType == typeof(int) || horasProp.PropertyType == typeof(int?))
+                                                    horasProp.SetValue(newPer, 0);
+                                                else if (horasProp.PropertyType == typeof(double) || horasProp.PropertyType == typeof(double?))
+                                                    horasProp.SetValue(newPer, 0.0);
+                                                else if (horasProp.PropertyType == typeof(string))
+                                                    horasProp.SetValue(newPer, "0");
+                                            }
+
+                                            newList?.Add(newPer);
+                                        }
+
+                                        personalProp.SetValue(newPvd, newList);
+                                    }
+                                }
+
+                                // Horas totales semanales = 0 si existe
+                                var horasTotProp = pvdType.GetProperty("HorasTrabajadasTotal");
+                                if (horasTotProp != null)
+                                {
+                                    if (horasTotProp.PropertyType == typeof(int) || horasTotProp.PropertyType == typeof(int?))
+                                        horasTotProp.SetValue(newPvd, 0);
+                                    else if (horasTotProp.PropertyType == typeof(double) || horasTotProp.PropertyType == typeof(double?))
+                                        horasTotProp.SetValue(newPvd, 0.0);
+                                    else if (horasTotProp.PropertyType == typeof(string))
+                                        horasTotProp.SetValue(newPvd, "0");
+                                }
+
+                                targetPvdProp.SetValue(targetWeek, newPvd);
+                                clonedSomething = true;
+                            }
+                        }
+                    }
+
+                    // PiramideSeguridad (si existiera con ese nombre)
+                    var pirProp = prev.GetType().GetProperty("PiramideSeguridad");
+                    if (pirProp != null)
+                    {
+                        var prevPir = pirProp.GetValue(prev);
+                        if (prevPir != null)
+                        {
+                            var targetPirProp = typeof(WeekData).GetProperty("PiramideSeguridad");
+                            if (targetPirProp != null)
+                            {
+                                var pirType = pirProp.PropertyType;
+                                var newPir = Activator.CreateInstance(pirType);
+
+                                string[] simples = { "FAI", "MTI", "MDI", "LTI" };
+                                foreach (var nm in simples)
+                                {
+                                    var sp = pirType.GetProperty(nm);
+                                    var tp = pirType.GetProperty(nm);
+                                    if (sp != null && tp != null) tp.SetValue(newPir, sp.GetValue(prevPir));
+                                }
+
+                                // Copiar listas si existen (Precursores/Potenciales)
+                                void CopyList(string name)
+                                {
+                                    var sp = pirType.GetProperty(name);
+                                    if (sp == null) return;
+                                    var list = sp.GetValue(prevPir) as System.Collections.IEnumerable;
+                                    if (list == null) return;
+
+                                    var listType = sp.PropertyType;
+                                    var newList = Activator.CreateInstance(listType) as System.Collections.IList;
+
+                                    foreach (var item in list)
+                                    {
+                                        var it = item?.GetType();
+                                        var newItem = it != null ? Activator.CreateInstance(it) : null;
+
+                                        if (newItem != null && it != null)
+                                        {
+                                            foreach (var pr in it.GetProperties())
+                                            {
+                                                // Si alguna subpropiedad fuese horas, la ponemos en 0
+                                                if (pr.Name.ToLowerInvariant().Contains("hora"))
+                                                {
+                                                    if (pr.PropertyType == typeof(int) || pr.PropertyType == typeof(int?)) pr.SetValue(newItem, 0);
+                                                    else if (pr.PropertyType == typeof(double) || pr.PropertyType == typeof(double?)) pr.SetValue(newItem, 0.0);
+                                                    else if (pr.PropertyType == typeof(string)) pr.SetValue(newItem, "0");
+                                                }
+                                                else
+                                                {
+                                                    pr.SetValue(newItem, pr.GetValue(item));
+                                                }
+                                            }
+                                            newList?.Add(newItem);
+                                        }
+                                    }
+
+                                    sp.SetValue(newPir, newList);
+                                }
+
+                                CopyList("Precursores");
+                                CopyList("Potenciales");
+
+                                var horasTotProp2 = pirType.GetProperty("HorasTrabajadasTotal");
+                                if (horasTotProp2 != null)
+                                {
+                                    if (horasTotProp2.PropertyType == typeof(int) || horasTotProp2.PropertyType == typeof(int?))
+                                        horasTotProp2.SetValue(newPir, 0);
+                                    else if (horasTotProp2.PropertyType == typeof(double) || horasTotProp2.PropertyType == typeof(double?))
+                                        horasTotProp2.SetValue(newPir, 0.0);
+                                    else if (horasTotProp2.PropertyType == typeof(string))
+                                        horasTotProp2.SetValue(newPir, "0");
+                                }
+
+                                targetPirProp.SetValue(targetWeek, newPir);
+                                clonedSomething = true;
+                            }
+                        }
+                    }
+                }
+                catch { /* no bloquear */ }
+            }
+
+            // Nota
+            targetWeek.Notes = $"Semana {targetWeek.WeekNumber} creada a partir de semana {prev.WeekNumber}";
+        }
+
+
+        /// Clona tabla copiando columnas/filas y reseteando columnas de horas a "0".
+        private TableData CloneTableResetHours(TableData src)
+        {
+            var clone = new TableData
+            {
+                Name = src.Name,
+                Columns = src.Columns?.ToList() ?? new List<string>(),
+                Personas = new List<List<string>>()
+            };
+
+            if (src.Personas != null && src.Columns != null)
+            {
+                var hourColIdx = src.Columns
+                    .Select((col, idx) => (col, idx))
+                    .Where(t => IsHoursField(t.col))
+                    .Select(t => t.idx)
+                    .ToHashSet();
+
+                foreach (var row in src.Personas)
+                {
+                    var newRow = row.ToList();
+                    foreach (var idx in hourColIdx)
+                    {
+                        if (idx >= 0 && idx < newRow.Count)
+                            newRow[idx] = "0";
+                    }
+                    clone.Personas.Add(newRow);
+                }
+            }
+
+            return clone;
+        }
+
+        /// Heurística para detectar columnas/campos que son "horas trabajadas".
+        private bool IsHoursField(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            var n = name.Trim().ToLowerInvariant();
+            string[] keys =
+            {
+            "hora", "horas", "hrs", "h/trab", "horas trabajadas", "h. trabajadas",
+            "he", "horas hombre", "hh", "hs", "tiempo trabajado"
+        };
+            return keys.Any(k => n.Contains(k));
+        }
+
+    } 
+
+} 

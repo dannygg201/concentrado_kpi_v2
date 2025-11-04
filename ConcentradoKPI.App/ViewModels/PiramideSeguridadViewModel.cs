@@ -86,7 +86,7 @@ namespace ConcentradoKPI.App.ViewModels
         /// </summary>
         public void RecalculateFromWeek()
         {
-            var lista = Week?.PersonalVigente?.Personal ?? Enumerable.Empty<PersonRow>();
+            var lista = Week?.PersonalVigenteDocument?.Personal ?? Enumerable.Empty<PersonRow>();
 
             var colaboradores = lista.Count();
             var horas = lista.Sum(r => r?.HHSemana ?? 0);

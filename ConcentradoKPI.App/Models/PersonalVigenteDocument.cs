@@ -17,7 +17,9 @@ namespace ConcentradoKPI.App.Models
         public string RFCCompania { get; set; } = "";
         public string DireccionLegal { get; set; } = "";
         public string NumeroProveedor { get; set; } = "";
+        public string? OrdenCompra { get; set; }
         public DateTime? Fecha { get; set; }
+        public string? Observaciones { get; set; }
 
         // Detalle (tu relación de personal con horas)
         public List<PersonRow> Personal { get; set; } = new();

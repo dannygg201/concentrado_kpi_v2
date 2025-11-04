@@ -108,18 +108,21 @@
                             </StackPanel>
                             <StackPanel Margin="6">
                                 <TextBlock Text="No. Colaboradores" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding Values.Colaboradores, UpdateSourceTrigger=PropertyChanged}"
-                                         PreviewTextInput="NumericOnly"/>
+                                <TextBox Text="{Binding Values.Colaboradores, Mode=OneWay}"
+                     IsReadOnly="True" IsTabStop="False" Focusable="False"
+                     Background="#F4F6F8"/>
                             </StackPanel>
                             <StackPanel Margin="6">
                                 <TextBlock Text="No. Técnicos de Seguridad" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding Values.TecnicosSeguridad, UpdateSourceTrigger=PropertyChanged}"
-                                         PreviewTextInput="NumericOnly"/>
+                                <TextBox Text="{Binding Values.TecnicosSeguridad, Mode=OneWay}"
+                     IsReadOnly="True" IsTabStop="False" Focusable="False"
+                     Background="#F4F6F8"/>
                             </StackPanel>
                             <StackPanel Margin="6">
                                 <TextBlock Text="Horas trabajadas" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding Values.HorasTrabajadas, UpdateSourceTrigger=PropertyChanged}"
-                                         PreviewTextInput="NumericOnly"/>
+                                <TextBox Text="{Binding Values.HorasTrabajadas, Mode=OneWay}"
+                     IsReadOnly="True" IsTabStop="False" Focusable="False"
+                     Background="#F4F6F8"/>
                             </StackPanel>
                         </UniformGrid>
                     </GroupBox>

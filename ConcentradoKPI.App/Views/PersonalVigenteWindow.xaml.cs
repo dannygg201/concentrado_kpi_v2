@@ -88,7 +88,7 @@ namespace ConcentradoKPI.App.Views
             }
             SyncWeekFromVm();
             // 1) volcar a la semana (esto es lo que se serializa)
-            _week.PersonalVigente = new PersonalVigenteDocument
+            _week.PersonalVigenteDocument = new PersonalVigenteDocument
             {
                 Company = _company.Name,
                 Project = _project.Name,
@@ -98,8 +98,10 @@ namespace ConcentradoKPI.App.Views
                 RegistroIMSS = vm.RegistroIMSS ?? "",
                 RFCCompania = vm.RFCCompania ?? "",
                 DireccionLegal = vm.DireccionLegal ?? "",
+                OrdenCompra = vm.OrdenCompra,
                 NumeroProveedor = vm.NumeroProveedor ?? "",
                 Fecha = vm.Fecha,
+                Observaciones = vm.Observaciones,
                 Personal = vm.Personas.ToList()
             };
 
@@ -131,7 +133,9 @@ namespace ConcentradoKPI.App.Views
                 RFCCompania = vm.RFCCompania ?? "",
                 DireccionLegal = vm.DireccionLegal ?? "",
                 NumeroProveedor = vm.NumeroProveedor ?? "",
+                OrdenCompra = vm.OrdenCompra,
                 Fecha = vm.Fecha,
+                Observaciones = vm.Observaciones,
                 Personal = vm.Personas.ToList()
             };
         }
