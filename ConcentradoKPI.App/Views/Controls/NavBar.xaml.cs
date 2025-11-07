@@ -4,9 +4,6 @@ namespace ConcentradoKPI.App.Views.Controls
 {
     public partial class NavBar : UserControl
     {
-        public NavBar()
-        {
-            InitializeComponent();
-        }
+        public NavBar() => InitializeComponent();
     }
 }

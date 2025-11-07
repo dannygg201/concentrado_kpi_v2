@@ -1,20 +1,22 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using ConcentradoKPI.App.Models;
+using ConcentradoKPI.App.Services;
 
 namespace ConcentradoKPI.App.ViewModels
 {
-    public class PersonalVigenteViewModel : INotifyPropertyChanged
+    public class PersonalVigenteViewModel : INotifyPropertyChanged, IDisposable
     {
-        // Contexto
+        // ===== Contexto =====
         public Company Company { get; }
         public Project Project { get; }
         public WeekData Week { get; }
 
-        // Encabezado (formulario superior)
+        // ===== Encabezado =====
         private string? _razonSocial;
         public string? RazonSocial { get => _razonSocial; set { _razonSocial = value; OnPropertyChanged(); } }
 
@@ -32,6 +34,7 @@ namespace ConcentradoKPI.App.ViewModels
 
         private string? _numeroProveedor;
         public string? NumeroProveedor { get => _numeroProveedor; set { _numeroProveedor = value; OnPropertyChanged(); } }
+
         private string? _ordenCompra;
         public string? OrdenCompra { get => _ordenCompra; set { _ordenCompra = value; OnPropertyChanged(); } }
 
@@ -41,7 +44,7 @@ namespace ConcentradoKPI.App.ViewModels
         private string? _observaciones;
         public string? Observaciones { get => _observaciones; set { _observaciones = value; OnPropertyChanged(); } }
 
-        // Nuevo campo Sí/No
+        // Flag Tec. Seguridad (formulario)
         private bool _newEsTecnicoSeguridad;
         public bool NewEsTecnicoSeguridad
         {
@@ -49,11 +52,11 @@ namespace ConcentradoKPI.App.ViewModels
             set { _newEsTecnicoSeguridad = value; OnPropertyChanged(); }
         }
 
-        // Tabla
+        // ===== Tabla =====
         public ObservableCollection<PersonRow> Personas { get; } = new();
 
-        // Totales
-        public int TotalHH => Personas.Sum(p => p.HHSemana);
+        // ✅ Totales calculados desde D..S (no dependas de HHSemana)
+        public int TotalHH => Personas.Sum(p => p.D + p.L + p.M + p.MM + p.J + p.V + p.S);
 
         private PersonRow? _selectedPerson;
         public PersonRow? SelectedPerson
@@ -65,7 +68,6 @@ namespace ConcentradoKPI.App.ViewModels
                 _selectedPerson = value;
                 OnPropertyChanged();
 
-                // Cargar al formulario de edición cuando seleccionas una fila
                 if (value != null)
                 {
                     NewNombre = value.Nombre;
@@ -77,54 +79,22 @@ namespace ConcentradoKPI.App.ViewModels
                 }
                 else
                 {
-                    // Si se deselecciona todo, limpia el formulario
                     ClearForm();
                 }
 
-                // 🔹 Actualiza habilitación de comandos
                 RefreshCommands();
             }
         }
 
-        // Campos del formulario (alta/edición)
+        // ===== Campos del formulario =====
         private string _newNombre = "";
-        public string NewNombre
-        {
-            get => _newNombre;
-            set
-            {
-                if (_newNombre == value) return;
-                _newNombre = value;
-                OnPropertyChanged();
-                RefreshCommands();
-            }
-        }
+        public string NewNombre { get => _newNombre; set { if (_newNombre == value) return; _newNombre = value; OnPropertyChanged(); RefreshCommands(); } }
 
         private string? _newAfiliacion;
-        public string? NewAfiliacion
-        {
-            get => _newAfiliacion;
-            set
-            {
-                if (_newAfiliacion == value) return;
-                _newAfiliacion = value;
-                OnPropertyChanged();
-                RefreshCommands();
-            }
-        }
+        public string? NewAfiliacion { get => _newAfiliacion; set { if (_newAfiliacion == value) return; _newAfiliacion = value; OnPropertyChanged(); RefreshCommands(); } }
 
         private string? _newPuesto;
-        public string? NewPuesto
-        {
-            get => _newPuesto;
-            set
-            {
-                if (_newPuesto == value) return;
-                _newPuesto = value;
-                OnPropertyChanged();
-                RefreshCommands();
-            }
-        }
+        public string? NewPuesto { get => _newPuesto; set { if (_newPuesto == value) return; _newPuesto = value; OnPropertyChanged(); RefreshCommands(); } }
 
         public int NewD { get => _newD; set { _newD = Pos(value); OnPropertyChanged(); } }
         public int NewL { get => _newL; set { _newL = Pos(value); OnPropertyChanged(); } }
@@ -137,11 +107,13 @@ namespace ConcentradoKPI.App.ViewModels
         private int _newD, _newL, _newM, _newMM, _newJ, _newV, _newS;
         private static int Pos(int v) => v < 0 ? 0 : v;
 
-        // Comandos
+        // ===== Comandos =====
         public RelayCommand AddPersonCommand { get; }
         public RelayCommand ApplyEditCommand { get; }
         public RelayCommand DeleteSelectedCommand { get; }
         public RelayCommand ClearFormCommand { get; }
+
+        private bool _isPushingToWeek;
 
         public PersonalVigenteViewModel(Company c, Project p, WeekData w)
         {
@@ -149,7 +121,7 @@ namespace ConcentradoKPI.App.ViewModels
             Project = p;
             Week = w;
 
-            // Cargar datos previos si existen
+            // Hidrata si ya hay documento
             var doc = w.PersonalVigenteDocument;
             if (doc != null)
             {
@@ -166,11 +138,7 @@ namespace ConcentradoKPI.App.ViewModels
                 Personas.Clear();
                 foreach (var r in doc.Personal ?? Enumerable.Empty<PersonRow>())
                 {
-                    r.PropertyChanged += (_, e) =>
-                    {
-                        if (e.PropertyName == nameof(PersonRow.HHSemana))
-                            UpdateTotalsAndLive();
-                    };
+                    r.PropertyChanged += OnPersonRowPropertyChanged;
                     Personas.Add(r);
                 }
                 UpdateTotalsAndLive();
@@ -180,7 +148,7 @@ namespace ConcentradoKPI.App.ViewModels
                 UpdateTotalsAndLive();
             }
 
-            Personas.CollectionChanged += (_, __) => RefreshCommands();
+            Personas.CollectionChanged += Personas_CollectionChanged;
 
             AddPersonCommand = new RelayCommand(_ => AddPerson(), _ => CanAddPerson());
             ApplyEditCommand = new RelayCommand(_ => ApplyEdit(), _ => CanEditOrDelete());
@@ -188,7 +156,49 @@ namespace ConcentradoKPI.App.ViewModels
             ClearFormCommand = new RelayCommand(_ => ClearForm());
         }
 
-        // --- CanExecute logic ---
+        // ===== Handlers =====
+        private void OnPersonRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(PersonRow.HHSemana) ||
+                e.PropertyName == nameof(PersonRow.EsTecnicoSeguridad) ||
+                e.PropertyName == nameof(PersonRow.D) ||
+                e.PropertyName == nameof(PersonRow.L) ||
+                e.PropertyName == nameof(PersonRow.M) ||
+                e.PropertyName == nameof(PersonRow.MM) ||
+                e.PropertyName == nameof(PersonRow.J) ||
+                e.PropertyName == nameof(PersonRow.V) ||
+                e.PropertyName == nameof(PersonRow.S))
+            {
+                UpdateTotalsAndLive();
+            }
+        }
+
+        private void Personas_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
+                foreach (PersonRow r in e.NewItems) r.PropertyChanged += OnPersonRowPropertyChanged;
+
+            if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
+                foreach (PersonRow r in e.OldItems) r.PropertyChanged -= OnPersonRowPropertyChanged;
+
+            if (e.Action == NotifyCollectionChangedAction.Replace)
+            {
+                if (e.OldItems != null) foreach (PersonRow r in e.OldItems) r.PropertyChanged -= OnPersonRowPropertyChanged;
+                if (e.NewItems != null) foreach (PersonRow r in e.NewItems) r.PropertyChanged += OnPersonRowPropertyChanged;
+            }
+
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                foreach (var r in Personas) r.PropertyChanged -= OnPersonRowPropertyChanged;
+                foreach (var r in Personas) r.PropertyChanged += OnPersonRowPropertyChanged;
+            }
+
+            Renumber();
+            UpdateTotalsAndLive();
+            RefreshCommands();
+        }
+
+        // ===== CanExecute =====
         private bool CanAddPerson() => !string.IsNullOrWhiteSpace(NewNombre) && SelectedPerson == null;
         private bool CanEditOrDelete() => SelectedPerson != null;
 
@@ -199,10 +209,9 @@ namespace ConcentradoKPI.App.ViewModels
             DeleteSelectedCommand?.RaiseCanExecuteChanged();
         }
 
-        // --- Métodos principales ---
+        // ===== CRUD filas =====
         private void AddPerson()
         {
-            // Validación de duplicados (por nombre o afiliación)
             bool existeDuplicado = Personas.Any(p =>
                 string.Equals(p.Nombre?.Trim(), NewNombre?.Trim(), StringComparison.OrdinalIgnoreCase) ||
                 (!string.IsNullOrWhiteSpace(NewAfiliacion) &&
@@ -217,10 +226,9 @@ namespace ConcentradoKPI.App.ViewModels
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning
                 );
-                return; // 🚫 No agrega duplicado
+                return;
             }
 
-            // Si pasa validación, crea nuevo registro
             var row = new PersonRow
             {
                 Numero = Personas.Count + 1,
@@ -237,16 +245,7 @@ namespace ConcentradoKPI.App.ViewModels
                 EsTecnicoSeguridad = NewEsTecnicoSeguridad
             };
 
-            // Si cambia HHSemana, recalcula totales
-            row.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(PersonRow.HHSemana)
-                    || e.PropertyName == nameof(PersonRow.EsTecnicoSeguridad)) 
-                {
-                    UpdateTotalsAndLive();
-                }
-            };
-
+            row.PropertyChanged += OnPersonRowPropertyChanged;
 
             int insertIndex = GetInsertIndexForPuesto(row.Puesto);
             Personas.Insert(insertIndex, row);
@@ -255,10 +254,8 @@ namespace ConcentradoKPI.App.ViewModels
             UpdateTotalsAndLive();
             ClearForm();
             SelectedPerson = null;
-
             RefreshCommands();
         }
-
 
         private void ApplyEdit()
         {
@@ -318,8 +315,7 @@ namespace ConcentradoKPI.App.ViewModels
                 Personas[i].Numero = i + 1;
         }
 
-        private static string NormalizePuesto(string? p)
-            => (p ?? "").Trim().ToUpperInvariant();
+        private static string NormalizePuesto(string? p) => (p ?? "").Trim().ToUpperInvariant();
 
         private int GetInsertIndexForPuesto(string? puesto, PersonRow? ignore = null)
         {
@@ -334,20 +330,71 @@ namespace ConcentradoKPI.App.ViewModels
             return lastIndex >= 0 ? lastIndex + 1 : Personas.Count;
         }
 
-        // Totales en vivo
+        // ===== Live (fuente de verdad para Pirámide) =====
         private void UpdateTotalsAndLive()
         {
             OnPropertyChanged(nameof(TotalHH));
+
             if (Week?.Live == null) return;
 
             Week.Live.ColaboradoresTotal = Personas.Count;
-            Week.Live.HorasTrabajadasTotal = Personas.Sum(p => p.HHSemana);
             Week.Live.TecnicosSeguridadTotal = Personas.Count(p => p.EsTecnicoSeguridad);
+
+            // ✅ horas desde D..S (robusto al hidratar)
+            Week.Live.HorasTrabajadasTotal = Personas.Sum(p => p.D + p.L + p.M + p.MM + p.J + p.V + p.S);
+
+            Week.Live.NotifyAll();
         }
 
-        // INotifyPropertyChanged
+        // ===== Persistencia =====
+        public void PushToWeekData()
+        {
+            if (Week == null) return;
+            if (_isPushingToWeek) return;
+            _isPushingToWeek = true;
+
+            try
+            {
+                var doc = new PersonalVigenteDocument
+                {
+                    Company = Company?.Name,
+                    Project = Project?.Name,
+                    WeekNumber = Week.WeekNumber,
+                    RazonSocial = RazonSocial,
+                    ResponsableObra = ResponsableObra,
+                    RegistroIMSS = RegistroIMSS,
+                    RFCCompania = RFCCompania,
+                    DireccionLegal = DireccionLegal,
+                    NumeroProveedor = NumeroProveedor,
+                    OrdenCompra = OrdenCompra,
+                    Fecha = Fecha,
+                    Observaciones = Observaciones,
+                    Personal = Personas.ToList(),
+                    SavedUtc = DateTime.UtcNow
+                };
+
+                Week.PersonalVigenteDocument = doc;
+
+                // Opcional, garantiza consistencia post-guardar
+                LiveSyncService.Recalc(Week, doc);
+            }
+            finally
+            {
+                _isPushingToWeek = false;
+            }
+        }
+
+        // ===== INotifyPropertyChanged =====
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? n = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+
+        // ===== Limpieza =====
+        public void Dispose()
+        {
+            Personas.CollectionChanged -= Personas_CollectionChanged;
+            foreach (var r in Personas)
+                r.PropertyChanged -= OnPersonRowPropertyChanged;
+        }
     }
 }

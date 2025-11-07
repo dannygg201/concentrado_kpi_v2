@@ -5,7 +5,11 @@
              xmlns:conv="clr-namespace:ConcentradoKPI.App.Converters"
              Height="44" Background="#0B2C52">
     <UserControl.Resources>
+        <!-- (Opcional) Lo puedes usar en otros lados -->
         <conv:EqualsToCollapsedConverter x:Key="EqCollapsed"/>
+        <!-- Deshabilita si CurrentView == parámetro -->
+        <conv:EqualsToDisabledConverter x:Key="EqDisabled"/>
+
         <Style x:Key="NavBtn" TargetType="Button">
             <Setter Property="Margin" Value="4"/>
             <Setter Property="Padding" Value="12,6"/>
@@ -14,51 +18,79 @@
             <Setter Property="BorderBrush" Value="#1E4D89"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Style.Triggers>
+                <!-- Activo (IsEnabled=false): estilo de seleccionado -->
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#1E4D89"/>
+                    <Setter Property="BorderBrush" Value="#3B6FB1"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1A4878"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
-    <DockPanel LastChildFill="True">
-        <TextBlock Text="Concentrado KPI"
-                   Foreground="White" FontWeight="Bold"
-                   VerticalAlignment="Center" Margin="12,0" />
+    <!-- Barra con separador inferior sutil -->
+    <Border Background="#0B2C52" BorderBrush="#0A2544" BorderThickness="0,0,0,1">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="8,0">
-            <!-- OJO: DataContext = ShellViewModel, así que Binding va directo a CurrentView -->
+            <!-- Título a la izquierda -->
+            <TextBlock Grid.Column="0"
+                       Text="Concentrado KPI"
+                       Foreground="White"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center"
+                       Margin="12,0"
+                       TextTrimming="CharacterEllipsis"/>
 
-            <Button Style="{StaticResource NavBtn}" Content="Personal Vigente"
-                    Visibility="{Binding CurrentView,
-                                         Converter={StaticResource EqCollapsed},
-                                         ConverterParameter={x:Static models:AppView.PersonalVigente}}"
-                    Command="{Binding NavigateCommand}"
-                    CommandParameter="{x:Static models:AppView.PersonalVigente}"/>
+            <!-- Botones a la derecha -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+                <!-- OJO: DataContext debe ser ShellViewModel (hereda de la ventana) -->
+                <Button Style="{StaticResource NavBtn}" Content="Personal Vigente"
+                        Command="{Binding NavigateCommand}"
+                        CommandParameter="{x:Static models:AppView.PersonalVigente}"
+                        IsEnabled="{Binding CurrentView,
+                                            Converter={StaticResource EqDisabled},
+                                            ConverterParameter={x:Static models:AppView.PersonalVigente}}"/>
 
-            <Button Style="{StaticResource NavBtn}" Content="Pirámide de Seguridad"
-                    Visibility="{Binding CurrentView,
-                                         Converter={StaticResource EqCollapsed},
-                                         ConverterParameter={x:Static models:AppView.PiramideSeguridad}}"
-                    Command="{Binding NavigateCommand}"
-                    CommandParameter="{x:Static models:AppView.PiramideSeguridad}"/>
+                <Button Style="{StaticResource NavBtn}" Content="Pirámide de Seguridad"
+                        Command="{Binding NavigateCommand}"
+                        CommandParameter="{x:Static models:AppView.PiramideSeguridad}"
+                        IsEnabled="{Binding CurrentView,
+                                            Converter={StaticResource EqDisabled},
+                                            ConverterParameter={x:Static models:AppView.PiramideSeguridad}}"/>
 
-            <Button Style="{StaticResource NavBtn}" Content="Informe Semanal CMA"
-                    Visibility="{Binding CurrentView,
-                                         Converter={StaticResource EqCollapsed},
-                                         ConverterParameter={x:Static models:AppView.InformeSemanalCma}}"
-                    Command="{Binding NavigateCommand}"
-                    CommandParameter="{x:Static models:AppView.InformeSemanalCma}"/>
+                <Button Style="{StaticResource NavBtn}" Content="Informe Semanal CMA"
+                        Command="{Binding NavigateCommand}"
+                        CommandParameter="{x:Static models:AppView.InformeSemanalCma}"
+                        IsEnabled="{Binding CurrentView,
+                                            Converter={StaticResource EqDisabled},
+                                            ConverterParameter={x:Static models:AppView.InformeSemanalCma}}"/>
 
-            <Button Style="{StaticResource NavBtn}" Content="Precursor SIF"
-                    Visibility="{Binding CurrentView,
-                                         Converter={StaticResource EqCollapsed},
-                                         ConverterParameter={x:Static models:AppView.PrecursorSif}}"
-                    Command="{Binding NavigateCommand}"
-                    CommandParameter="{x:Static models:AppView.PrecursorSif}"/>
+                <Button Style="{StaticResource NavBtn}" Content="Precursor SIF"
+                        Command="{Binding NavigateCommand}"
+                        CommandParameter="{x:Static models:AppView.PrecursorSif}"
+                        IsEnabled="{Binding CurrentView,
+                                            Converter={StaticResource EqDisabled},
+                                            ConverterParameter={x:Static models:AppView.PrecursorSif}}"/>
 
-            <Button Style="{StaticResource NavBtn}" Content="Incidentes"
-                    Visibility="{Binding CurrentView,
-                                         Converter={StaticResource EqCollapsed},
-                                         ConverterParameter={x:Static models:AppView.Incidentes}}"
-                    Command="{Binding NavigateCommand}"
-                    CommandParameter="{x:Static models:AppView.Incidentes}"/>
-        </StackPanel>
-    </DockPanel>
+                <Button Style="{StaticResource NavBtn}" Content="Incidentes"
+                        Command="{Binding NavigateCommand}"
+                        CommandParameter="{x:Static models:AppView.Incidentes}"
+                        IsEnabled="{Binding CurrentView,
+                                            Converter={StaticResource EqDisabled},
+                                            ConverterParameter={x:Static models:AppView.Incidentes}}"/>
+            </StackPanel>
+        </Grid>
+    </Border>
 </UserControl>

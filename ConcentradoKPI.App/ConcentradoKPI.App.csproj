@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <None Remove="Assets\ABI_Logo.png" />
-    <None Remove="Assets\logo Apan Top 3_HD %281%29.png" />
+    <None Remove="Assets\modelo_blanco.png" />
     <None Remove="Assets\piramide_limpia.png" />
     <None Remove="Assets\SplashScreen.png" />
   </ItemGroup>
@@ -19,7 +19,7 @@
     <Resource Include="Assets\ABI_Logo.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
-    <Resource Include="Assets\logo Apan Top 3_HD (1).png">
+    <Resource Include="Assets\top_tres.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Assets\modelo_blanco.png">

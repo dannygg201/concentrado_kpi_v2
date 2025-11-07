@@ -7,7 +7,7 @@ namespace ConcentradoKPI.App.Views.Controls
     {
         public TopBar() => InitializeComponent();
 
-        // Opcional: permite forzar un título distinto al de la Window
+        // Permite forzar un título distinto al de la Window
         public string Title
         {
             get => (string)GetValue(TitleProperty);
@@ -15,6 +15,14 @@ namespace ConcentradoKPI.App.Views.Controls
         }
         public static readonly DependencyProperty TitleProperty =
             DependencyProperty.Register(nameof(Title), typeof(string), typeof(TopBar), new PropertyMetadata(string.Empty));
+
+        public IInputElement CommandTarget
+        {
+            get => (IInputElement)GetValue(CommandTargetProperty);
+            set => SetValue(CommandTargetProperty, value);
+        }
+        public static readonly DependencyProperty CommandTargetProperty =
+            DependencyProperty.Register(nameof(CommandTarget), typeof(IInputElement), typeof(TopBar), new PropertyMetadata(null));
 
         private void Salir_Click(object sender, RoutedEventArgs e)
         {

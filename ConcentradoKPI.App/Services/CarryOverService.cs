@@ -11,8 +11,8 @@ namespace ConcentradoKPI.App.Services
         /// <summary>
         /// Copia estructura desde la semana previa del mismo proyecto:
         /// - Clona tablas y pone horas/números en 0 (heurística).
-        /// - Copia la pirámide persistida (PiramideSeguridadDocument).
-        /// - Copia Personal Vigente (con horas en 0).
+        /// - Clona Personal Vigente con horas = 0 y recalcula Live.
+        /// - Clona la pirámide y fuerza Colaboradores/Técnicos/Horas desde Live (no arrastra de la semana previa).
         /// - Ajusta Week.Notes con traza.
         /// </summary>
         public static void ApplyFromPrevious(Project project, WeekData targetWeek)
@@ -27,7 +27,7 @@ namespace ConcentradoKPI.App.Services
 
             bool clonedSomething = false;
 
-            // 1) TABLAS: clonar estructura y resetear horas/números a 0
+            // 1) TABLAS: clonar estructura reseteando números/horas a 0
             if (prev.Tables != null && prev.Tables.Count > 0)
             {
                 targetWeek.Tables = new List<TableData>(prev.Tables.Count);
@@ -36,39 +36,7 @@ namespace ConcentradoKPI.App.Services
                 clonedSomething = true;
             }
 
-            // 2) PIRÁMIDE (persistida): copiar si existe
-            if (prev.PiramideSeguridad != null)
-            {
-                targetWeek.PiramideSeguridad = ClonePiramideDocument(prev.PiramideSeguridad, targetWeek.WeekNumber);
-
-                // Opcional pero útil: hidrata la estructura "en vivo" (SafetyPyramid) desde el documento
-                targetWeek.Pyramid = SafetyFromDoc(targetWeek.PiramideSeguridad);
-
-                clonedSomething = true;
-            }
-            else if (prev.Pyramid != null)
-            {
-                // Soporte heredado: si tenías la antigua SafetyPyramid, clónala
-                targetWeek.Pyramid = new SafetyPyramid
-                {
-                    UnsafeActs = prev.Pyramid.UnsafeActs,
-                    UnsafeConditions = prev.Pyramid.UnsafeConditions,
-                    NearMisses = prev.Pyramid.NearMisses,
-                    FirstAids = prev.Pyramid.FirstAids,
-                    MedicalTreatments = prev.Pyramid.MedicalTreatments,
-                    LostTimeInjuries = prev.Pyramid.LostTimeInjuries,
-                    Fatalities = prev.Pyramid.Fatalities,
-                    FindingsCorrected = prev.Pyramid.FindingsCorrected,
-                    FindingsTotal = prev.Pyramid.FindingsTotal,
-                    TrainingsCompleted = prev.Pyramid.TrainingsCompleted,
-                    TrainingsPlanned = prev.Pyramid.TrainingsPlanned,
-                    AuditsCompleted = prev.Pyramid.AuditsCompleted,
-                    AuditsPlanned = prev.Pyramid.AuditsPlanned
-                };
-                clonedSomething = true;
-            }
-
-            // 3) PERSONAL VIGENTE: clonar encabezado + personal con horas = 0
+            // 2) PERSONAL VIGENTE: clonar encabezado + personal con horas = 0
             if (prev.PersonalVigenteDocument != null)
             {
                 var src = prev.PersonalVigenteDocument;
@@ -84,7 +52,6 @@ namespace ConcentradoKPI.App.Services
                     DireccionLegal = src.DireccionLegal,
                     NumeroProveedor = src.NumeroProveedor,
                     Fecha = DateTime.Today,
-                    // 👇 OJO: NO copiamos observaciones semanales aquí a propósito
                     Personal = new List<PersonRow>()
                 };
 
@@ -108,6 +75,51 @@ namespace ConcentradoKPI.App.Services
                 }
 
                 targetWeek.PersonalVigenteDocument = copy;
+                clonedSomething = true;
+
+                // ✅ recalcular Live a partir del PV con horas en 0
+                LiveSyncService.Recalc(targetWeek, copy);
+            }
+            else
+            {
+                // Sin PV previo: deja Live en 0 y notifica
+                LiveSyncService.Recalc(targetWeek, null);
+            }
+
+            // 3) PIRÁMIDE: clonar y FORZAR 3 campos desde Live (no arrastrar horas/personas/técnicos)
+            if (prev.PiramideSeguridad != null)
+            {
+                targetWeek.PiramideSeguridad = ClonePiramideDocument(prev.PiramideSeguridad, targetWeek.WeekNumber);
+
+                // forzar los 3 totales desde Live (que ya está recalculado)
+                targetWeek.PiramideSeguridad.Colaboradores = targetWeek.Live.ColaboradoresTotal;
+                targetWeek.PiramideSeguridad.TecnicosSeguridad = targetWeek.Live.TecnicosSeguridadTotal;
+                targetWeek.PiramideSeguridad.HorasTrabajadas = targetWeek.Live.HorasTrabajadasTotal;
+
+                // (opcional) hidratar estructura en vivo
+                targetWeek.Pyramid = SafetyFromDoc(targetWeek.PiramideSeguridad);
+
+                clonedSomething = true;
+            }
+            else if (prev.Pyramid != null)
+            {
+                // Soporte heredado: clonar la estructura "en vivo"
+                targetWeek.Pyramid = new SafetyPyramid
+                {
+                    UnsafeActs = prev.Pyramid.UnsafeActs,
+                    UnsafeConditions = prev.Pyramid.UnsafeConditions,
+                    NearMisses = prev.Pyramid.NearMisses,
+                    FirstAids = prev.Pyramid.FirstAids,
+                    MedicalTreatments = prev.Pyramid.MedicalTreatments,
+                    LostTimeInjuries = prev.Pyramid.LostTimeInjuries,
+                    Fatalities = prev.Pyramid.Fatalities,
+                    FindingsCorrected = prev.Pyramid.FindingsCorrected,
+                    FindingsTotal = prev.Pyramid.FindingsTotal,
+                    TrainingsCompleted = prev.Pyramid.TrainingsCompleted,
+                    TrainingsPlanned = prev.Pyramid.TrainingsPlanned,
+                    AuditsCompleted = prev.Pyramid.AuditsCompleted,
+                    AuditsPlanned = prev.Pyramid.AuditsPlanned
+                };
                 clonedSomething = true;
             }
 
@@ -162,8 +174,11 @@ namespace ConcentradoKPI.App.Services
         private static bool IsNumeric(string? s)
         {
             if (string.IsNullOrWhiteSpace(s)) return false;
-            return double.TryParse(s.Replace(",", "."), System.Globalization.NumberStyles.Any,
-                                   System.Globalization.CultureInfo.InvariantCulture, out _);
+            return double.TryParse(
+                s.Replace(",", "."),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out _);
         }
 
         private static PiramideSeguridadDocument ClonePiramideDocument(PiramideSeguridadDocument src, int newWeekNumber)
@@ -224,7 +239,6 @@ namespace ConcentradoKPI.App.Services
 
         /// <summary>
         /// Convierte el documento persistido a la estructura "en vivo" SafetyPyramid.
-        /// Nota: mapeo aproximado basado en tus nombres.
         /// </summary>
         private static SafetyPyramid SafetyFromDoc(PiramideSeguridadDocument d)
         {
@@ -232,26 +246,15 @@ namespace ConcentradoKPI.App.Services
 
             return new SafetyPyramid
             {
-                // Actos / Condiciones: usamos Inseguros para UnsafeActs; no hay campo directo para condiciones
                 UnsafeActs = d.Inseguros,
                 UnsafeConditions = 0,
-
-                // NearMisses: tomamos Potenciales (y podrías sumar IncidentesSinLesionX si así lo usan)
                 NearMisses = d.Potenciales,
-
-                // Lesiones por nivel
                 FirstAids = Sum(d.FAI1, d.FAI2, d.FAI3),
                 MedicalTreatments = Sum(d.MTI1, d.MTI2, d.MTI3),
                 LostTimeInjuries = Sum(d.LTI1, d.LTI2, d.LTI3),
-
-                // No tenemos Fatalities explícitas en el doc
                 Fatalities = 0,
-
-                // Hallazgos / programas
                 FindingsCorrected = d.Corregidas,
                 FindingsTotal = d.Detectadas,
-
-                // No hay campos de capacitación / auditorías en el doc -> 0
                 TrainingsCompleted = 0,
                 TrainingsPlanned = 0,
                 AuditsCompleted = 0,

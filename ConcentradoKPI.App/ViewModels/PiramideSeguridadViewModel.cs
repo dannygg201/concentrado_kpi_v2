@@ -179,5 +179,6 @@ namespace ConcentradoKPI.App.ViewModels
             if (Week?.Live != null && _liveHandler != null)
                 Week.Live.PropertyChanged -= _liveHandler;
         }
+
     }
 }

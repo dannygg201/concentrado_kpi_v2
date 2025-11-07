@@ -9,12 +9,12 @@ namespace ConcentradoKPI.App.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is null || parameter is null) return Visibility.Visible;
-            // Si CurrentView == parámetro -> colapsa (oculta el botón de la vista actual)
-            return Equals(value, parameter) ? Visibility.Collapsed : Visibility.Visible;
+            if (value == null || parameter == null)
+                return Visibility.Visible;
+            return value.Equals(parameter) ? Visibility.Collapsed : Visibility.Visible;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => Binding.DoNothing;
+            => throw new NotSupportedException();
     }
 }

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
 using ConcentradoKPI.App.Models;
+using ConcentradoKPI.App.Services; // ⬅️ para LastEspecialidadStore
 
 namespace ConcentradoKPI.App.ViewModels
 {
@@ -52,21 +53,18 @@ namespace ConcentradoKPI.App.ViewModels
 
     public class InformeSemanalCMAViewModel : INotifyPropertyChanged
     {
-        // ✅ Necesarias para el TopBar
+        // Top info
         public Company Company { get; }
         public Project Project { get; }
         public WeekData Week { get; }
 
         public string EncabezadoDescripcion { get; }
 
-        // Colección para el ItemsControl
+        // Items
         public ObservableCollection<ContratistaRow> Cards { get; } = new();
 
-        // Puedes seguir usando estos para lógica interna
         public ContratistaRow Editable { get; } = new();
         public ContratistaRow TotalesFila { get; } = new() { IsTotal = true, Nombre = "Totales" };
-        // ==== SYNC con Week.Live desde la fila Editable ====
-        
 
         private void PullFromLiveToEditable()
         {
@@ -76,9 +74,7 @@ namespace ConcentradoKPI.App.ViewModels
             Editable.TecnicosSeguridad = Week.Live.TecnicosSeguridadTotal;
         }
 
-
-        // =========== MÉTODO NUEVO: hidratar desde la pirámide ===========
-        // 👉 Colócalo tal cual dentro de la clase, por encima o debajo de los constructores
+        // 🔸 Hidratar desde Pirámide
         private void HydrateFromPiramide(PiramideSeguridadDocument? d)
         {
             if (d == null) return;
@@ -100,29 +96,22 @@ namespace ConcentradoKPI.App.ViewModels
             Editable.MDI = mdi;
             Editable.LTI = lti;
 
-            // TRI típico = MTI + MDI + LTI
-            Editable.TRI = mti + mdi + lti;
-
-            // Incidentes: usamos “sin lesión” (ajústalo si quieres otra cosa)
-            Editable.Incidentes = incSinLesion;
-
-            // Actos
+            Editable.TRI = mti + mdi + lti;              // TRI típico
+            Editable.Incidentes = incSinLesion;          // Ajusta si ocupas otro criterio
             Editable.ActosSeguros = d.Seguros;
             Editable.ActosInseguros = d.Inseguros;
 
-            // Prec. SIF – Comportamiento / Condición (ajustable a tu gusto)
             Editable.PrecursoresSifComportamiento = precursoresTotal;
             Editable.PrecursoresSifCondicion = d.Detectadas;
         }
-        // ================================================================
 
-        // ✅ Constructor REAL (c/p/w) — AQUÍ LLAMAMOS HydrateFromPiramide(...)
+        // ✅ Constructor REAL
         public InformeSemanalCMAViewModel(
-     Company c,
-     Project p,
-     WeekData w,
-     string nombreInicial = "",
-     string especialidadInicial = "")
+            Company c,
+            Project p,
+            WeekData w,
+            string nombreInicial = "",
+            string especialidadInicial = "")
         {
             Company = c;
             Project = p;
@@ -130,14 +119,34 @@ namespace ConcentradoKPI.App.ViewModels
 
             EncabezadoDescripcion = $"Semana {w.WeekNumber}  |  {p.Name}";
 
-            // Inicial editable
             Editable.Nombre = string.IsNullOrWhiteSpace(nombreInicial) ? c.Name : nombreInicial;
             Editable.Especialidad = especialidadInicial;
 
-            // 1) Pull inicial DESDE Live
+            // 1) Pull inicial desde Live
             PullFromLiveToEditable();
 
-            // 2) Suscripción: cuando cambie Live, volvemos a hacer pull (en hilo UI)
+            // 2) Pull inicial desde Pirámide
+            HydrateFromPiramide(Week?.PiramideSeguridad);
+
+            // 3) Si la semana actual YA tiene informe con especialidad, úsalo
+            if (Week?.InformeSemanalCma is InformeSemanalCmaDocument d &&
+                !string.IsNullOrWhiteSpace(d.Especialidad))
+            {
+                Editable.Especialidad = d.Especialidad;
+            }
+            else
+            {
+                // 4) Si sigue vacío, intenta recuperar el último valor usado (si no existe, queda vacío)
+                if (string.IsNullOrWhiteSpace(Editable.Especialidad))
+                {
+                    var last = LastEspecialidadStore.Get(Company?.Name ?? "", Project?.Name ?? "");
+                    if (!string.IsNullOrWhiteSpace(last))
+                        Editable.Especialidad = last!;
+                    // si last es null/empty => permanece vacío ✔️
+                }
+            }
+
+            // 5) Suscripción a cambios de Live -> volver a jalar
             if (Week?.Live != null)
             {
                 Week.Live.PropertyChanged += (_, e) =>
@@ -152,24 +161,18 @@ namespace ConcentradoKPI.App.ViewModels
                 };
             }
 
-            // 3) Cuando cambie algo del Editable, SOLO recalculamos totales (NO empujar a Live)
+            // 6) Recalcular totales al cambiar Editable
             Editable.PropertyChanged += (_, __) => RecalcularTotales();
             RecalcularTotales();
 
-            // 4) Llenar ItemsControl
+            // 7) Llenar Items
             Cards.Add(Editable);
             Cards.Add(TotalesFila);
         }
 
-
-        // 🧪 Constructor para DISEÑO/PRUEBA (strings) — mantiene compatibilidad
-        public InformeSemanalCMAViewModel(
-            string semana,
-            string proyecto,
-            string nombreInicial = "",
-            string especialidadInicial = "")
+        // 🧪 Diseño
+        public InformeSemanalCMAViewModel(string semana, string proyecto, string nombreInicial = "", string especialidadInicial = "")
         {
-            // Dummies para que el TopBar también tenga datos en diseño
             Company = new Company { Name = string.IsNullOrWhiteSpace(nombreInicial) ? "Demo Co." : nombreInicial };
             Project = new Project { Name = string.IsNullOrWhiteSpace(proyecto) ? "Proyecto Demo" : proyecto };
             Week = new WeekData { WeekNumber = int.TryParse(semana, out var n) ? n : 1 };

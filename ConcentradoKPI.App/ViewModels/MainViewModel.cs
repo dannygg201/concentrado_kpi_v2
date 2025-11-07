@@ -1,16 +1,17 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.IO; 
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;                 // MessageBox
-using Microsoft.Win32;                // OpenFileDialog/SaveFileDialog
-using ConcentradoKPI.App.Models;
+﻿using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.Services;
-using System.Windows.Data;
+using ConcentradoKPI.App.Views;
+using Microsoft.Win32;                // OpenFileDialog/SaveFileDialog
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO; 
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows;                 // MessageBox
+using System.Windows.Data;
 
 namespace ConcentradoKPI.App.ViewModels
 {
@@ -20,6 +21,24 @@ namespace ConcentradoKPI.App.ViewModels
     {
         public ObservableCollection<Company> Companies { get; } = new();
         public AppData App { get; private set; } = new AppData();
+
+        // === Navegación por módulos (para el NavBar + ContentControl) ===
+        private AppView _currentView = AppView.PersonalVigente;
+        public AppView CurrentView
+        {
+            get => _currentView;
+            set
+            {
+                if (_currentView != value)
+                {
+                    _currentView = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public RelayCommand NavigateCommand { get; }
+
 
         private Company? _selectedCompany;
         public Company? SelectedCompany
@@ -41,6 +60,8 @@ namespace ConcentradoKPI.App.ViewModels
                 DeleteWeekCommand?.RaiseCanExecuteChanged();
 
                 ExportCommand?.RaiseCanExecuteChanged();
+                OpenPersonalCommand?.RaiseCanExecuteChanged();
+
             }
         }
 
@@ -62,6 +83,8 @@ namespace ConcentradoKPI.App.ViewModels
                 DeleteCompanyCommand?.RaiseCanExecuteChanged();
                 DeleteProjectCommand?.RaiseCanExecuteChanged();
                 DeleteWeekCommand?.RaiseCanExecuteChanged();
+                OpenPersonalCommand?.RaiseCanExecuteChanged();
+
             }
         }
 
@@ -75,6 +98,7 @@ namespace ConcentradoKPI.App.ViewModels
 
                 RenameWeekCommand?.RaiseCanExecuteChanged();
                 DeleteWeekCommand?.RaiseCanExecuteChanged();
+                OpenPersonalCommand?.RaiseCanExecuteChanged();
 
             }
         }
@@ -121,15 +145,19 @@ namespace ConcentradoKPI.App.ViewModels
             DeleteProjectCommand = new RelayCommand(_ => DeleteProject(), _ => SelectedProject != null);
             DeleteWeekCommand = new RelayCommand(_ => DeleteWeek(), _ => SelectedWeek != null);
             NewCommand = new RelayCommand(_ => NewDocument());
+            // Navegación por enum desde el NavBar
+            NavigateCommand = new RelayCommand(p =>
+            {
+                if (p is AppView v)
+                    CurrentView = v;
+            });
+
 
             OpenPersonalCommand = new RelayCommand(
-                _ =>
-                {
-                    if (SelectedCompany != null && SelectedProject != null && SelectedWeek != null)
-                        OpenPersonalRequested?.Invoke(SelectedCompany, SelectedProject, SelectedWeek);
-},
-    _ => SelectedWeek != null
-);
+           _ => OpenPersonal(),
+           _ => SelectedCompany != null && SelectedProject != null && SelectedWeek != null
+       );
+
 
 
             RefreshCommandStates();
@@ -320,7 +348,7 @@ namespace ConcentradoKPI.App.ViewModels
             if (SelectedCompany == null) return;
 
             var res = MessageBox.Show(
-                $"¿Eliminar compañía '{SelectedCompany.Name}' y TODO su contenido?",
+                $"¿Seguro que quiere cerrar '{SelectedCompany.Name}'?",
                 "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (res != MessageBoxResult.Yes) return;
 
@@ -379,9 +407,19 @@ namespace ConcentradoKPI.App.ViewModels
 
         private void OpenPersonal()
         {
-            if (SelectedCompany == null || SelectedProject == null || SelectedWeek == null) return;
-            OpenPersonalRequested?.Invoke(SelectedCompany, SelectedProject, SelectedWeek);
+            if (SelectedCompany == null || SelectedProject == null || SelectedWeek == null)
+                return;
+
+            var shell = new ShellWindow(SelectedCompany, SelectedProject, SelectedWeek, this)
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            shell.Show(); // puedes usar ShowDialog() si quieres que bloquee el Main
         }
+
+
+
 
 
         // ====== Exportar ======

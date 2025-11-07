@@ -1,0 +1,222 @@
+﻿<UserControl x:Class="ConcentradoKPI.App.Views.Pages.PersonalVigenteView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:ConcentradoKPI.App.Converters"
+             Background="#F7F9FC">
+
+    <!-- Conversores -->
+    <UserControl.Resources>
+        <conv:BoolToSiNoConverter  x:Key="BoolToSiNoConverter"/>
+        <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
+    </UserControl.Resources>
+
+    <!-- Scroll de toda la página -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16" Orientation="Vertical">
+
+            <!-- ===== Formulario superior ===== -->
+            <Border Padding="12" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="White">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="1.2*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Razón Social de la Compañía Contratista:" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3"
+                              Text="{Binding RazonSocial, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="8,4,0,4"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Nombre del Responsable de la Obra o Servicio:" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                              Text="{Binding ResponsableObra, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="8,4,0,4"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Registro Patronal IMSS:" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="2" Grid.Column="1"
+                              Text="{Binding RegistroIMSS, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="8,4,12,4"/>
+
+                    <TextBlock  Grid.Row="2" Grid.Column="2" Text="Fecha:" VerticalAlignment="Center"/>
+                    <DatePicker Grid.Row="2" Grid.Column="3"
+                                SelectedDate="{Binding Fecha, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Margin="8,4,0,4"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="RFC de la Compañía:" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="3" Grid.Column="1"
+                              Text="{Binding RFCCompania, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="8,4,12,4"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Número de Proveedor:" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="3" Grid.Column="3"
+                              Text="{Binding NumeroProveedor, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="8,4,0,4"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Orden de compra:" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="4" Grid.Column="3"
+                              Text="{Binding OrdenCompra, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="8,4,0,4"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Dirección legal:" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3"
+                              Text="{Binding DireccionLegal, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="8,4,0,4"/>
+                </Grid>
+            </Border>
+
+            <!-- Relación de personal -->
+            <TextBlock Text="Relación de personal" Margin="0,16,0,6" FontWeight="SemiBold"/>
+
+            <Border BorderBrush="#D9D9D9" BorderThickness="1" CornerRadius="4" Background="White">
+                <DataGrid ItemsSource="{Binding Personas}"
+                          SelectedItem="{Binding SelectedPerson, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="False"
+                          CanUserSortColumns="False"
+                          HeadersVisibility="Column"
+                          RowHeaderWidth="0"
+                          ColumnHeaderHeight="32"
+                          GridLinesVisibility="All"
+                          Height="203"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.CanContentScroll="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="No"      Binding="{Binding Numero}"   IsReadOnly="True" Width="40"/>
+                        <DataGridTextColumn Header="NOMBRE"  Binding="{Binding Nombre,     UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                        <DataGridTextColumn Header="No. de Afiliación" Binding="{Binding Afiliacion, UpdateSourceTrigger=PropertyChanged}" Width="140"/>
+                        <DataGridTextColumn Header="Puesto"  Binding="{Binding Puesto,     UpdateSourceTrigger=PropertyChanged}" Width="160"/>
+
+                        <!-- Muestra 'Sí/No' -->
+                        <DataGridTemplateColumn Header="TecSeg" Width="70">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding EsTecnicoSeguridad, Converter={StaticResource BoolToSiNoConverter}}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="D"  Binding="{Binding D,  UpdateSourceTrigger=PropertyChanged}"  Width="42"/>
+                        <DataGridTextColumn Header="L"  Binding="{Binding L,  UpdateSourceTrigger=PropertyChanged}"  Width="42"/>
+                        <DataGridTextColumn Header="M"  Binding="{Binding M,  UpdateSourceTrigger=PropertyChanged}"  Width="42"/>
+                        <DataGridTextColumn Header="M"  Binding="{Binding MM, UpdateSourceTrigger=PropertyChanged}" Width="42"/>
+                        <DataGridTextColumn Header="J"  Binding="{Binding J,  UpdateSourceTrigger=PropertyChanged}"  Width="42"/>
+                        <DataGridTextColumn Header="V"  Binding="{Binding V,  UpdateSourceTrigger=PropertyChanged}"  Width="42"/>
+                        <DataGridTextColumn Header="S"  Binding="{Binding S,  UpdateSourceTrigger=PropertyChanged}"  Width="42"/>
+                        <DataGridTextColumn Header="HH Semana" Binding="{Binding HHSemana}" IsReadOnly="True" Width="90"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <TextBlock HorizontalAlignment="Right" Margin="0,6,0,0"
+                       Text="{Binding TotalHH, StringFormat='TOTAL DE HH TRABAJADAS = {0}'}"/>
+
+            <!-- Agregar / editar (misma lógica que el Window anterior) -->
+            <TextBlock Text="Agregar / editar personal" Margin="0,16,0,4" FontWeight="SemiBold"/>
+
+            <Border Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="White">
+                <Grid>
+                    <!-- Columnas 0..11 -->
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <!-- 0: Nombre -->
+                        <ColumnDefinition Width="1.2*"/>
+                        <!-- 1: Afiliación -->
+                        <ColumnDefinition Width="1.2*"/>
+                        <!-- 2: Puesto -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 3: D -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 4: L -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 5: M -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 6: M -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 7: J -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 8: V -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 9: S -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 10: TecSeg -->
+                        <ColumnDefinition Width="Auto"/>
+                        <!-- 11: Botones -->
+                    </Grid.ColumnDefinitions>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Etiquetas -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Nombre"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="No. de Afiliación"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Puesto"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Center" Text="D" Margin="0,4,6,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="4" HorizontalAlignment="Center" Text="L" Margin="0,4,6,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="5" HorizontalAlignment="Center" Text="M" Margin="0,4,6,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="6" HorizontalAlignment="Center" Text="M" Margin="0,4,6,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="7" HorizontalAlignment="Center" Text="J" Margin="0,4,6,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="8" HorizontalAlignment="Center" Text="V" Margin="0,4,6,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="9" HorizontalAlignment="Center" Text="S" Margin="0,4,6,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="10" Text="Tec. Seguridad" Margin="8,0,0,0"/>
+
+                    <!-- Campos NUEVO registro -->
+                    <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding NewNombre,     Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,8,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NewAfiliacion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,8,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding NewPuesto,    Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,8,0"/>
+
+                    <TextBox Grid.Row="1" Grid.Column="3" Width="36" TextAlignment="Center" Text="{Binding NewD,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="4" Width="36" TextAlignment="Center" Text="{Binding NewL,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="5" Width="36" TextAlignment="Center" Text="{Binding NewM,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="6" Width="36" TextAlignment="Center" Text="{Binding NewMM, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="7" Width="36" TextAlignment="Center" Text="{Binding NewJ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="8" Width="36" TextAlignment="Center" Text="{Binding NewV,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="9" Width="36" TextAlignment="Center" Text="{Binding NewS,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,6,0"/>
+
+                    <!-- Radio Sí/No para NewEsTecnicoSeguridad -->
+                    <Grid Grid.Row="1" Grid.Column="10" Margin="8,4,8,0" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <RadioButton Grid.Column="0" GroupName="TecSegNew" Content="Sí"
+                                     IsChecked="{Binding NewEsTecnicoSeguridad, Mode=TwoWay}"/>
+                        <RadioButton Grid.Column="2" GroupName="TecSegNew" Content="No"
+                                     IsChecked="{Binding NewEsTecnicoSeguridad, Mode=TwoWay, Converter={StaticResource InverseBoolConverter}}"/>
+                    </Grid>
+
+                    <!-- Botones – mismos nombres que te funcionaban -->
+                    <StackPanel Grid.Row="1" Grid.Column="11" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,4,0,0">
+                        <Button Content="Agregar" Margin="0,0,6,0" Padding="12,4" Command="{Binding AddPersonCommand}"/>
+                        <Button Content="Guardar" Margin="0,0,6,0" Padding="12,4" Command="{Binding ApplyEditCommand}"/>
+                        <Button Content="Eliminar" Margin="0,0,6,0" Padding="12,4" Command="{Binding DeleteSelectedCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Observaciones -->
+            <TextBlock Text="Observaciones" Margin="0,16,0,6" FontWeight="SemiBold"/>
+            <Border Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="White">
+                <TextBox Text="{Binding Observaciones, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" MinHeight="90"/>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

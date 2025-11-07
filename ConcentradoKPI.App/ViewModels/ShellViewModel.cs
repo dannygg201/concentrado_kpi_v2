@@ -15,11 +15,10 @@ namespace ConcentradoKPI.App.ViewModels
             get => _currentView;
             set
             {
-                if (_currentView != value)
-                {
-                    _currentView = value;
-                    OnPropertyChanged();
-                }
+                if (_currentView == value) return;
+                _currentView = value;
+                OnPropertyChanged();
+                NavigateRequested?.Invoke(_currentView);   // avisa al ShellWindow para cargar la vista
             }
         }
 
@@ -34,9 +33,13 @@ namespace ConcentradoKPI.App.ViewModels
             NavigateCommand = new RelayCommand(param =>
             {
                 if (param is AppView v)
-                    NavigateRequested?.Invoke(v);
+                {
+                    CurrentView = v;           // 🔹 Actualiza la propiedad
+                    NavigateRequested?.Invoke(v); // 🔹 Avisa al ShellWindow para que cargue la vista
+                }
             });
         }
+
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)

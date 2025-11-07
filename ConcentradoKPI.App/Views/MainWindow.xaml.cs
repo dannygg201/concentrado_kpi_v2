@@ -7,7 +7,7 @@ using System.Windows.Input;
 using System.Collections.Generic;
 using System;
 using ConcentradoKPI.App.Views;
-
+using ConcentradoKPI.App.Views.Pages; // <- para PersonalVigenteView
 
 namespace ConcentradoKPI.App.Views
 {
@@ -17,19 +17,16 @@ namespace ConcentradoKPI.App.Views
         {
             InitializeComponent();
             Loaded += MainWindow_Loaded;
-
         }
-        // ===== Registro de ventanas abiertas por clave (empresa|proyecto|semana) =====
-        private readonly Dictionary<string, PersonalVigenteWindow> _openWindows = new();
-       
-        private static string MakeKey(Company c, Project p, WeekData w)
-     => $"{c.Name}|{p.Name}|{w.WeekNumber}";
 
+        // Registro de ventanas abiertas
+        private readonly Dictionary<string, ShellWindow> _openWindows = new();
+        private static string MakeKey(Company c, Project p, WeekData w)
+            => $"{c.Name}|{p.Name}|{w.WeekNumber}";
 
         private static void BringToFront(Window w)
         {
             if (w.WindowState == WindowState.Minimized) w.WindowState = WindowState.Normal;
-            // Truco para forzar foco
             w.Topmost = true; w.Topmost = false;
             w.Activate(); w.Focus();
         }
@@ -38,51 +35,60 @@ namespace ConcentradoKPI.App.Views
         {
             if (DataContext is MainViewModel vm)
             {
-                // Evita doble suscripción
                 vm.OpenPersonalRequested -= Vm_OpenPersonalRequested;
                 vm.OpenPersonalRequested += Vm_OpenPersonalRequested;
+
+                // Si ya hay selección al cargar, intenta mostrar preview
+                if (vm.SelectedCompany != null && vm.SelectedProject != null && vm.SelectedWeek != null)
+                    LoadPersonalVigentePreview(vm.SelectedCompany, vm.SelectedProject, vm.SelectedWeek);
             }
         }
-        // 🔹 Abre la nueva ventana de personal vigente
-        // 🔹 Abre la nueva ventana de personal vigente
+
+        // ===== Preview helpers =====
+        private void LoadPersonalVigentePreview(Company c, Project p, WeekData w)
+        {
+            var view = new PersonalVigenteView
+            {
+                DataContext = new PersonalVigenteViewModel(c, p, w),
+                IsHitTestVisible = false, // SOLO VISUAL
+                Focusable = false
+            };
+
+            PreviewHost.Content = view;
+            w?.Live?.NotifyAll();
+        }
+
+        private void ClearPreview()
+        {
+            PreviewHost.Content = null;
+        }
+
+        // Abre Shell
         private void Vm_OpenPersonalRequested(Company company, Project project, WeekData week)
         {
             var key = MakeKey(company, project, week);
 
-            // Si ya está abierta, solo traemos al frente
             if (_openWindows.TryGetValue(key, out var existing) && existing.IsLoaded)
             {
                 BringToFront(existing);
                 return;
             }
 
-            // Crea una nueva ventana modeless
-            var vm = new PersonalVigenteViewModel(company, project, week);
-
-            // ⬇️ AQUI EL CAMBIO: pásale los 3 argumentos al constructor
-            var win = new PersonalVigenteWindow(company, project, week)
+            var shell = new ShellWindow(company, project, week, (MainViewModel)DataContext)
             {
-                Owner = this,                 // o null si la quieres totalmente independiente
+                Owner = this,
                 ShowInTaskbar = true,
-                DataContext = vm,
-                Title = $"Personal vigente - {company.Name} · {project.Name} · Semana {week.WeekNumber}"
+                Title = $"Concentrado KPI - {company.Name} · {project.Name} · Semana {week.WeekNumber}"
             };
 
-            // Guarda en el registro
-            _openWindows[key] = win;
+            shell.Closed += (_, __) => _openWindows.Remove(key);
 
-            // Limpieza al cerrar
-            win.Closed += (_, __) =>
-            {
-                _openWindows.Remove(key);
-                if (vm is IDisposable d) d.Dispose();
-            };
-
-            win.Show();
-            BringToFront(win);
+            _openWindows[key] = shell;
+            shell.Show();
+            BringToFront(shell);
         }
 
-
+        // Context menus: mantienen selección
         private void CompanyMenu_Opened(object sender, RoutedEventArgs e)
         {
             if (DataContext is not MainViewModel vm) return;
@@ -94,6 +100,7 @@ namespace ConcentradoKPI.App.Views
                     vm.SelectedCompany = company;
                     vm.SelectedProject = null;
                     vm.SelectedWeek = null;
+                    ClearPreview();
                     CommandManager.InvalidateRequerySuggested();
                 }
             }
@@ -111,6 +118,7 @@ namespace ConcentradoKPI.App.Views
                     foreach (var c in vm.Companies)
                         if (c.Projects.Contains(project)) { vm.SelectedCompany = c; break; }
                     vm.SelectedWeek = null;
+                    ClearPreview();
                     CommandManager.InvalidateRequerySuggested();
                 }
             }
@@ -128,12 +136,14 @@ namespace ConcentradoKPI.App.Views
                     foreach (var c in vm.Companies)
                         foreach (var p in c.Projects)
                             if (p.Weeks.Contains(week)) { vm.SelectedProject = p; vm.SelectedCompany = c; break; }
+
+                    // 🔎 Actualiza preview
+                    if (vm.SelectedCompany != null && vm.SelectedProject != null && vm.SelectedWeek != null)
+                        LoadPersonalVigentePreview(vm.SelectedCompany, vm.SelectedProject, vm.SelectedWeek);
                     CommandManager.InvalidateRequerySuggested();
                 }
             }
         }
-
-
 
         private void TreeViewItem_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -143,7 +153,6 @@ namespace ConcentradoKPI.App.Views
                 item.Focus();
             }
         }
-
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
@@ -155,14 +164,15 @@ namespace ConcentradoKPI.App.Views
                     vm.SelectedCompany = c;
                     vm.SelectedProject = null;
                     vm.SelectedWeek = null;
+                    ClearPreview();
                     break;
 
                 case Project p:
                     vm.SelectedProject = p;
-                    // actualizar compañía según el árbol
                     foreach (var comp in vm.Companies)
                         if (comp.Projects.Contains(p)) { vm.SelectedCompany = comp; break; }
                     vm.SelectedWeek = null;
+                    ClearPreview();
                     break;
 
                 case WeekData w:
@@ -171,6 +181,14 @@ namespace ConcentradoKPI.App.Views
                         foreach (var proj in comp.Projects)
                             if (proj.Weeks.Contains(w))
                             { vm.SelectedProject = proj; vm.SelectedCompany = comp; break; }
+
+                    // 🔎 Carga la vista previa
+                    if (vm.SelectedCompany != null && vm.SelectedProject != null && vm.SelectedWeek != null)
+                        LoadPersonalVigentePreview(vm.SelectedCompany, vm.SelectedProject, vm.SelectedWeek);
+                    break;
+
+                default:
+                    ClearPreview();
                     break;
             }
         }

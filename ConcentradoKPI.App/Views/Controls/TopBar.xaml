@@ -1,43 +1,56 @@
 ﻿<UserControl x:Class="ConcentradoKPI.App.Views.Controls.TopBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Name="Root" Height="44">
+             x:Name="Root" Height="56">
     <DockPanel Background="#11254a" LastChildFill="False">
-        <!-- Título: primero usa DP Title; si está vacío, usa Window.Title -->
-        <TextBlock Margin="16,0"
-                   FontSize="18"
-                   FontWeight="Bold"
-                   Foreground="White"
-                   VerticalAlignment="Center"
-                   DockPanel.Dock="Left">
-            <Run>
-                <Run.Text>
-                    <PriorityBinding>
-                        <Binding ElementName="Root" Path="Title"/>
-                        <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="Title"/>
-                    </PriorityBinding>
-                </Run.Text>
-            </Run>
-            <Run Text=" — " />
-            <!-- Company -->
-            <Run Text="{Binding DataContext.Company.Name,
-                                RelativeSource={RelativeSource AncestorType=Window},
-                                TargetNullValue=''}"/>
-            <Run Text=" — Proyecto: " />
-            <!-- Project -->
-            <Run Text="{Binding DataContext.Project.Name,
-                                RelativeSource={RelativeSource AncestorType=Window},
-                                TargetNullValue=''}"/>
-            <Run Text=" | Semana " />
-            <!-- Week -->
-            <Run Text="{Binding DataContext.Week.WeekNumber,
-                                RelativeSource={RelativeSource AncestorType=Window},
-                                TargetNullValue=''}"/>
-        </TextBlock>
+        <!-- LADO IZQUIERDO: 2 logos + texto + 1 logo -->
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="10,0">
+            <!-- Logo 1 (izquierda) -->
+            <Image Source="/Assets/modelo_blanco.png"
+                   Height="60" Stretch="Uniform"
+                   VerticalAlignment="Center" Margin="0,0,10,0"
+                   ToolTip="Logo 1"/>
 
-        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="8,0">
+            <!-- Logo 2 (antes del texto) -->
+            <Image Source="/Assets/ABI_Logo.png"
+                   Height="30" Stretch="Uniform"
+                   VerticalAlignment="Center" Margin="0,0,10,0"
+                   ToolTip="Logo 2"/>
+
+            <!-- TEXTO (lo que ya tenías) -->
+            <TextBlock FontSize="20"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       VerticalAlignment="Center">
+                <Run>
+                    <Run.Text>
+                        <PriorityBinding>
+                            <Binding ElementName="Root" Path="Title"/>
+                            <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="Title"/>
+                        </PriorityBinding>
+                    </Run.Text>
+                </Run>
+                <Run Text=" — " />
+                <Run Text="{Binding Company.Name, TargetNullValue=''}"/>
+                <Run Text=" — Proyecto: " />
+                <Run Text="{Binding Project.Name, TargetNullValue=''}"/>
+                <Run Text=" | Semana " />
+                <Run Text="{Binding Week.WeekNumber, TargetNullValue=''}"/>
+            </TextBlock>
+
+           
+        </StackPanel>
+
+        <!-- LADO DERECHO: Botones -->
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="8,0" VerticalAlignment="Center">
+            <!-- Logo 3 (después del texto) -->
+            <Image Source="/Assets/top_tres.png"
+        Height="50" Stretch="Uniform"
+        VerticalAlignment="Center" Margin="10,0,0,0"
+        ToolTip="Logo 3"/>
             <Button Content="Guardar" Margin="4" Padding="12,6"
-                    Command="ApplicationCommands.Save"/>
+                    Command="ApplicationCommands.Save"
+                    CommandTarget="{Binding ElementName=Root, Path=CommandTarget}"/>
             <Button Content="Salir" Margin="4" Padding="12,6"
                     Click="Salir_Click"/>
         </StackPanel>

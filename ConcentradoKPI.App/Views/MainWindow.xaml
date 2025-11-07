@@ -3,8 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:ConcentradoKPI.App.ViewModels"
         xmlns:models="clr-namespace:ConcentradoKPI.App.Models"
+        xmlns:controls="clr-namespace:ConcentradoKPI.App.Views.Controls"
+        xmlns:conv="clr-namespace:ConcentradoKPI.App.Converters"
         Title="Smart KPI" Width="1100" Height="700"
         WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <conv:EnumToViewConverter x:Key="EnumToView"/>
+    </Window.Resources>
+
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
@@ -24,14 +31,11 @@
             <TextBlock Text="Smart KPI" Foreground="White" Margin="16,0"
                        FontSize="20" FontWeight="Bold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
             <StackPanel Orientation="Horizontal" Margin="8" DockPanel.Dock="Right">
-                <!-- Abrir deshabilitado si ya hay compañía -->
                 <Button Content="Abrir" Margin="4" Padding="12,6"
                         Command="{Binding ImportCommand}">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <!-- Por defecto deshabilitado -->
                             <Setter Property="IsEnabled" Value="False"/>
-                            <!-- Si NO hay compañías => habilitar -->
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Companies.Count}" Value="0">
                                     <Setter Property="IsEnabled" Value="True"/>
@@ -50,20 +54,15 @@
         <Grid Grid.Row="1" Grid.Column="0" Background="#F7F7F7">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <!-- Título -->
                 <RowDefinition Height="*"/>
-                <!-- Árbol con scroll -->
                 <RowDefinition Height="Auto"/>
-                <!-- Botones -->
             </Grid.RowDefinitions>
 
-            <!-- Título -->
             <TextBlock Text="Compañías"
                        Margin="16,16,16,8"
                        FontWeight="SemiBold"
                        FontSize="14"/>
 
-            <!-- Recuadro del árbol con tamaño definido + scroll -->
             <Border Grid.Row="1" Margin="12"
                     BorderBrush="#DDD" BorderThickness="1" CornerRadius="6"
                     Background="White">
@@ -75,7 +74,6 @@
 
                             <!-- ContextMenus -->
                             <TreeView.Resources>
-                                <!-- MENÚ para Compañía -->
                                 <ContextMenu x:Key="CompanyMenu" Opened="CompanyMenu_Opened">
                                     <MenuItem Header="➕ Agregar proyecto"
                                               Command="{Binding PlacementTarget.Tag.AddProjectCommand,
@@ -89,7 +87,6 @@
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 </ContextMenu>
 
-                                <!-- MENÚ para Proyecto -->
                                 <ContextMenu x:Key="ProjectMenu" Opened="ProjectMenu_Opened">
                                     <MenuItem Header="➕ Agregar semana"
                                               Command="{Binding PlacementTarget.Tag.AddWeekCommand,
@@ -103,7 +100,6 @@
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 </ContextMenu>
 
-                                <!-- MENÚ para Semana -->
                                 <ContextMenu x:Key="WeekMenu" Opened="WeekMenu_Opened">
                                     <MenuItem Header="✏️ Editar semana"
                                               Command="{Binding PlacementTarget.Tag.RenameWeekCommand,
@@ -114,7 +110,6 @@
                                 </ContextMenu>
                             </TreeView.Resources>
 
-                            <!-- Árbol jerárquico -->
                             <TreeView.ItemsSource>
                                 <Binding Path="Companies"/>
                             </TreeView.ItemsSource>
@@ -163,7 +158,6 @@
 
             <!-- Botones fijos -->
             <StackPanel Grid.Row="2" Orientation="Vertical" Margin="12,0,12,12">
-                <!-- Agregar compañía deshabilitado si ya hay alguna -->
                 <Button Content="➕ Agregar compañía"
                         Margin="0,6,0,0"
                         Command="{Binding AddCompanyCommand}"
@@ -171,9 +165,7 @@
                         HorizontalAlignment="Left">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <!-- Por defecto deshabilitado -->
                             <Setter Property="IsEnabled" Value="False"/>
-                            <!-- Si NO hay compañías => habilitar -->
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Companies.Count}" Value="0">
                                     <Setter Property="IsEnabled" Value="True"/>
@@ -199,77 +191,79 @@
         <Grid Grid.Row="1" Grid.Column="1" Margin="16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Text="Detalle" FontSize="18" FontWeight="Bold" Margin="0,0,0,8"/>
-
-            <StackPanel Grid.Row="1" Orientation="Vertical" Margin="0,0,0,12">
+            <!-- Detalle + botón Abrir -->
+            <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,8,0,12">
+                <TextBlock Text="Detalle" FontSize="18" FontWeight="Bold" Margin="0,0,0,8"/>
                 <TextBlock Text="Compañía:"/>
                 <TextBlock Text="{Binding SelectedCompany.Name, TargetNullValue=—}" FontWeight="SemiBold"/>
 
                 <TextBlock Text="Proyecto:" Margin="0,8,0,0"/>
                 <TextBlock Text="{Binding SelectedProject.Name, TargetNullValue=—}" FontWeight="SemiBold"/>
+
                 <TextBlock Text="Semana:" Margin="0,8,0,0"/>
                 <TextBlock Text="{Binding SelectedWeek.WeekNumber, TargetNullValue=—}" FontWeight="SemiBold"/>
 
-                <!-- Botón para abrir la ventana de Personal Vigente -->
                 <Button Margin="0,12,0,0"
                         Padding="12,6"
-                        Width="Auto"
                         HorizontalAlignment="Left"
                         Command="{Binding OpenPersonalCommand}">
                     <TextBlock>
                         <Run Text="Abrir "/>
-                        <Run Text="Semana " />
-                        <Run Text="{Binding SelectedWeek.WeekNumber}" />
+                        <Run Text="Semana "/>
+                        <Run Text="{Binding SelectedWeek.WeekNumber}"/>
                     </TextBlock>
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="IsEnabled" Value="{Binding OpenPersonalCommand.CanExecute, RelativeSource={RelativeSource Self}}"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedWeek}" Value="{x:Null}">
-                                    <Setter Property="Content" Value="Abrir"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
                 </Button>
             </StackPanel>
 
-            <!-- Estado vacío -->
-            <Border Grid.Row="2" Padding="20" Margin="0,0,0,12"
-                    BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="8" Background="#FAFAFA">
-                <TextBlock Text="Abre un archivo (.kpi.json) o agrega una compañía para empezar."
-                           FontSize="14" Foreground="#666" TextWrapping="Wrap">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Companies.Count}" Value="0">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </Border>
+            <!-- Tarjeta de Preview -->
+            <Border Grid.Row="1" Padding="12" Margin="0,0,0,12"
+                    BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="8" Background="White">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-            <Border Grid.Row="2" Padding="16" BorderBrush="#DDD" BorderThickness="1" CornerRadius="8">
-                <TextBlock Text="{Binding Mensaje}" FontSize="14">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Visibility" Value="Visible"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Companies.Count}" Value="0">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                    <TextBlock Text="Vista previa — Personal vigente"
+                               FontSize="16" FontWeight="Bold" Foreground="#021A4B"/>
+
+                    <!-- Mensaje cuando no hay datos -->
+                    <TextBlock Grid.Row="2"
+                               Text="Abre un archivo (.kpi.json) o selecciona una compañía/proyecto/semana para ver la vista previa."
+                               FontSize="14" Foreground="#666" TextWrapping="Wrap" VerticalAlignment="Center" TextAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Companies.Count}" Value="0"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Companies.Count}" Value="1"/>
+                                            <Condition Binding="{Binding SelectedWeek}" Value="{x:Null}"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Host de la preview -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <ContentControl x:Name="PreviewHost"/>
+                    </ScrollViewer>
+                </Grid>
             </Border>
         </Grid>
+
     </Grid>
 </Window>

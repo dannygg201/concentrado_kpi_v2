@@ -74,10 +74,9 @@ namespace ConcentradoKPI.App.ViewModels
             Registros.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalRegistros));
         }
 
-        // 🧪 Constructor de diseño/prueba (strings) — mantiene compatibilidad
+        // 🧪 Constructor de diseño/prueba (strings)
         public PrecursorSifViewModel(string semana, string proyecto)
         {
-            // Dummies para que el TopBar también tenga datos si se usa este ctor
             Company = new Company { Name = "Demo Co." };
             Project = new Project { Name = string.IsNullOrWhiteSpace(proyecto) ? "Proyecto Demo" : proyecto };
             Week = new WeekData { WeekNumber = int.TryParse(semana, out var n) ? n : 1 };

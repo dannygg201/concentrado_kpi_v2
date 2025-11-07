@@ -1,0 +1,39 @@
+﻿<Window x:Class="ConcentradoKPI.App.Views.ShellWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ConcentradoKPI.App.Views.Controls"
+        Title="Concentrado KPI" Width="1200" Height="750"
+        WindowStartupLocation="CenterOwner" Background="#F7F9FC">
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Save"
+                        Executed="Save_Executed"
+                        CanExecute="Save_CanExecute"/>
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Command="ApplicationCommands.Save" Modifiers="Control" Key="S"/>
+    </Window.InputBindings>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <!-- Top bar -->
+            <RowDefinition Height="44"/>
+            <!-- NavBar -->
+            <RowDefinition Height="*"/>
+            <!-- Body -->
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR: el DataContext se lo inyectamos en code-behind -->
+        <controls:TopBar x:Name="TopBarControl"
+                         Grid.Row="0"
+                         Title="Pirámide de seguridad"/>
+
+        <!-- NAVBAR -->
+        <controls:NavBar Grid.Row="1"/>
+
+        <!-- CUERPO dinámino -->
+        <Border Grid.Row="2" Margin="12" CornerRadius="8"
+            BorderBrush="#E5E5E5" BorderThickness="1" Background="White">
+            <ContentControl x:Name="BodyHost"/>
+        </Border>
+    </Grid>
+</Window>
