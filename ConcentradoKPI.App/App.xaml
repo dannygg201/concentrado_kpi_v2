@@ -7,8 +7,5 @@
     <Application.Resources>
         <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
         <conv:BoolToSiNoConverter x:Key="BoolToSiNoConverter"/>
-        <Style TargetType="Window">
-            <EventSetter Event="Loaded" Handler="Global_WindowLoaded"/>
-        </Style>
     </Application.Resources>
 </Application>

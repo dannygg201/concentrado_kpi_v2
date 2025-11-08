@@ -10,45 +10,55 @@ namespace ConcentradoKPI.App
         {
             base.OnStartup(e);
 
-            // REGISTRA EL HANDLER GLOBAL PARA TODAS LAS Window
+            // 1) Handler global para Loaded de TODAS las Window
             EventManager.RegisterClassHandler(
                 typeof(Window),
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(Global_WindowLoaded)
             );
 
-            // Evita que la app se cierre cuando cerremos el splash
+            // 2) Mostramos splash sin cerrar la app al cerrar esa ventana
             Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             var splash = new SplashWindow();
             splash.Show();
 
-            // TODO: aquí tu inicialización real (DB, config, etc.)
-            await Task.Delay(3000);
+            // 3) Inicialización (simulada)
+            await Task.Delay(1500);
 
-            // Crea y muestra la ventana principal
+            // 4) Abrimos la ventana principal
             var main = new MainWindow();
-            Current.MainWindow = main;        // <- establece la ventana principal
+            Current.MainWindow = main;
             main.Show();
 
-            // Cierra el splash
+            // 5) Cerramos splash y restauramos shutdown normal
             splash.Close();
-
-            // Restaura el shutdown normal: la app cierra cuando se cierre MainWindow
             Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
         }
+
         private void Global_WindowLoaded(object sender, RoutedEventArgs e)
         {
-            if (sender is Window w)
+            if (sender is not Window w) return;
+
+            // Evita que SizeToContent bloquee el maximizado
+            if (w.SizeToContent != SizeToContent.Manual)
+                w.SizeToContent = SizeToContent.Manual;
+
+            // Solo estas 3 van maximizadas
+            if (w is SplashWindow || w is MainWindow || w is ShellWindow)
             {
-                // Evita que SizeToContent bloquee el maximizado
-                if (w.SizeToContent != SizeToContent.Manual)
-                    w.SizeToContent = SizeToContent.Manual;
-
+                w.WindowStartupLocation = WindowStartupLocation.CenterScreen;
                 w.WindowState = WindowState.Maximized;
+                return;
             }
+
+            // Todas las demás: tamaño normal y centradas
+            if (w.WindowState == WindowState.Maximized)
+                w.WindowState = WindowState.Normal;
+
+            w.WindowStartupLocation = (w.Owner != null)
+                ? WindowStartupLocation.CenterOwner
+                : WindowStartupLocation.CenterScreen;
         }
-
     }
-
 }
