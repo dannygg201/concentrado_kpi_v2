@@ -4,6 +4,8 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Windows.Threading;
 using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.Services;
 
@@ -18,38 +20,38 @@ namespace ConcentradoKPI.App.ViewModels
 
         // ===== Encabezado =====
         private string? _razonSocial;
-        public string? RazonSocial { get => _razonSocial; set { _razonSocial = value; OnPropertyChanged(); } }
+        public string? RazonSocial { get => _razonSocial; set { if (_razonSocial == value) return; _razonSocial = value; OnPropertyChanged(); } }
 
         private string? _responsableObra;
-        public string? ResponsableObra { get => _responsableObra; set { _responsableObra = value; OnPropertyChanged(); } }
+        public string? ResponsableObra { get => _responsableObra; set { if (_responsableObra == value) return; _responsableObra = value; OnPropertyChanged(); } }
 
         private string? _registroIMSS;
-        public string? RegistroIMSS { get => _registroIMSS; set { _registroIMSS = value; OnPropertyChanged(); } }
+        public string? RegistroIMSS { get => _registroIMSS; set { if (_registroIMSS == value) return; _registroIMSS = value; OnPropertyChanged(); } }
 
         private DateTime? _fecha = DateTime.Today;
-        public DateTime? Fecha { get => _fecha; set { _fecha = value; OnPropertyChanged(); } }
+        public DateTime? Fecha { get => _fecha; set { if (_fecha == value) return; _fecha = value; OnPropertyChanged(); } }
 
         private string? _rfcCompania;
-        public string? RFCCompania { get => _rfcCompania; set { _rfcCompania = value; OnPropertyChanged(); } }
+        public string? RFCCompania { get => _rfcCompania; set { if (_rfcCompania == value) return; _rfcCompania = value; OnPropertyChanged(); } }
 
         private string? _numeroProveedor;
-        public string? NumeroProveedor { get => _numeroProveedor; set { _numeroProveedor = value; OnPropertyChanged(); } }
+        public string? NumeroProveedor { get => _numeroProveedor; set { if (_numeroProveedor == value) return; _numeroProveedor = value; OnPropertyChanged(); } }
 
         private string? _ordenCompra;
-        public string? OrdenCompra { get => _ordenCompra; set { _ordenCompra = value; OnPropertyChanged(); } }
+        public string? OrdenCompra { get => _ordenCompra; set { if (_ordenCompra == value) return; _ordenCompra = value; OnPropertyChanged(); } }
 
         private string? _direccionLegal;
-        public string? DireccionLegal { get => _direccionLegal; set { _direccionLegal = value; OnPropertyChanged(); } }
+        public string? DireccionLegal { get => _direccionLegal; set { if (_direccionLegal == value) return; _direccionLegal = value; OnPropertyChanged(); } }
 
         private string? _observaciones;
-        public string? Observaciones { get => _observaciones; set { _observaciones = value; OnPropertyChanged(); } }
+        public string? Observaciones { get => _observaciones; set { if (_observaciones == value) return; _observaciones = value; OnPropertyChanged(); } }
 
         // Flag Tec. Seguridad (formulario)
         private bool _newEsTecnicoSeguridad;
         public bool NewEsTecnicoSeguridad
         {
             get => _newEsTecnicoSeguridad;
-            set { _newEsTecnicoSeguridad = value; OnPropertyChanged(); }
+            set { if (_newEsTecnicoSeguridad == value) return; _newEsTecnicoSeguridad = value; OnPropertyChanged(); }
         }
 
         // ===== Tabla =====
@@ -96,13 +98,13 @@ namespace ConcentradoKPI.App.ViewModels
         private string? _newPuesto;
         public string? NewPuesto { get => _newPuesto; set { if (_newPuesto == value) return; _newPuesto = value; OnPropertyChanged(); RefreshCommands(); } }
 
-        public int NewD { get => _newD; set { _newD = Pos(value); OnPropertyChanged(); } }
-        public int NewL { get => _newL; set { _newL = Pos(value); OnPropertyChanged(); } }
-        public int NewM { get => _newM; set { _newM = Pos(value); OnPropertyChanged(); } }
-        public int NewMM { get => _newMM; set { _newMM = Pos(value); OnPropertyChanged(); } }
-        public int NewJ { get => _newJ; set { _newJ = Pos(value); OnPropertyChanged(); } }
-        public int NewV { get => _newV; set { _newV = Pos(value); OnPropertyChanged(); } }
-        public int NewS { get => _newS; set { _newS = Pos(value); OnPropertyChanged(); } }
+        public int NewD { get => _newD; set { var nv = Pos(value); if (_newD == nv) return; _newD = nv; OnPropertyChanged(); } }
+        public int NewL { get => _newL; set { var nv = Pos(value); if (_newL == nv) return; _newL = nv; OnPropertyChanged(); } }
+        public int NewM { get => _newM; set { var nv = Pos(value); if (_newM == nv) return; _newM = nv; OnPropertyChanged(); } }
+        public int NewMM { get => _newMM; set { var nv = Pos(value); if (_newMM == nv) return; _newMM = nv; OnPropertyChanged(); } }
+        public int NewJ { get => _newJ; set { var nv = Pos(value); if (_newJ == nv) return; _newJ = nv; OnPropertyChanged(); } }
+        public int NewV { get => _newV; set { var nv = Pos(value); if (_newV == nv) return; _newV = nv; OnPropertyChanged(); } }
+        public int NewS { get => _newS; set { var nv = Pos(value); if (_newS == nv) return; _newS = nv; OnPropertyChanged(); } }
 
         private int _newD, _newL, _newM, _newMM, _newJ, _newV, _newS;
         private static int Pos(int v) => v < 0 ? 0 : v;
@@ -114,6 +116,10 @@ namespace ConcentradoKPI.App.ViewModels
         public RelayCommand ClearFormCommand { get; }
 
         private bool _isPushingToWeek;
+
+        // ===== Throttle / Guards =====
+        private int _totalsScheduled;     // 0 = no agendado, 1 = agendado
+        private bool _isUpdatingTotals;   // guard reentrante
 
         public PersonalVigenteViewModel(Company c, Project p, WeekData w)
         {
@@ -141,11 +147,11 @@ namespace ConcentradoKPI.App.ViewModels
                     r.PropertyChanged += OnPersonRowPropertyChanged;
                     Personas.Add(r);
                 }
-                UpdateTotalsAndLive();
+                ScheduleTotals();
             }
             else
             {
-                UpdateTotalsAndLive();
+                ScheduleTotals();
             }
 
             Personas.CollectionChanged += Personas_CollectionChanged;
@@ -169,7 +175,7 @@ namespace ConcentradoKPI.App.ViewModels
                 e.PropertyName == nameof(PersonRow.V) ||
                 e.PropertyName == nameof(PersonRow.S))
             {
-                UpdateTotalsAndLive();
+                ScheduleTotals();
             }
         }
 
@@ -189,12 +195,11 @@ namespace ConcentradoKPI.App.ViewModels
 
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
-                foreach (var r in Personas) r.PropertyChanged -= OnPersonRowPropertyChanged;
-                foreach (var r in Personas) r.PropertyChanged += OnPersonRowPropertyChanged;
+                foreach (var r in Personas) { r.PropertyChanged -= OnPersonRowPropertyChanged; r.PropertyChanged += OnPersonRowPropertyChanged; }
             }
 
             Renumber();
-            UpdateTotalsAndLive();
+            ScheduleTotals();
             RefreshCommands();
         }
 
@@ -251,7 +256,7 @@ namespace ConcentradoKPI.App.ViewModels
             Personas.Insert(insertIndex, row);
             Renumber();
 
-            UpdateTotalsAndLive();
+            ScheduleTotals();
             ClearForm();
             SelectedPerson = null;
             RefreshCommands();
@@ -280,7 +285,7 @@ namespace ConcentradoKPI.App.ViewModels
                 Renumber();
             }
 
-            UpdateTotalsAndLive();
+            ScheduleTotals();
             ClearForm();
             SelectedPerson = null;
             RefreshCommands();
@@ -292,7 +297,7 @@ namespace ConcentradoKPI.App.ViewModels
 
             Personas.Remove(SelectedPerson);
             Renumber();
-            UpdateTotalsAndLive();
+            ScheduleTotals();
 
             ClearForm();
             SelectedPerson = null;
@@ -331,19 +336,36 @@ namespace ConcentradoKPI.App.ViewModels
         }
 
         // ===== Live (fuente de verdad para Pirámide) =====
-        private void UpdateTotalsAndLive()
+        private void ScheduleTotals()
         {
-            OnPropertyChanged(nameof(TotalHH));
+            // Si ya hay una ejecución pendiente, no agendas otra.
+            if (Interlocked.Exchange(ref _totalsScheduled, 1) == 1) return;
 
-            if (Week?.Live == null) return;
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    try { UpdateTotalsAndLiveInternal(); }
+                    finally { Interlocked.Exchange(ref _totalsScheduled, 0); }
+                }),
+                DispatcherPriority.Background);
+        }
 
-            Week.Live.ColaboradoresTotal = Personas.Count;
-            Week.Live.TecnicosSeguridadTotal = Personas.Count(p => p.EsTecnicoSeguridad);
+        private void UpdateTotalsAndLiveInternal()
+        {
+            if (_isUpdatingTotals) return;
+            _isUpdatingTotals = true;
+            try
+            {
+                OnPropertyChanged(nameof(TotalHH));
 
-            // ✅ horas desde D..S (robusto al hidratar)
-            Week.Live.HorasTrabajadasTotal = Personas.Sum(p => p.D + p.L + p.M + p.MM + p.J + p.V + p.S);
-
-            Week.Live.NotifyAll();
+                if (Week?.Live != null)
+                {
+                    Week.Live.ColaboradoresTotal = Personas.Count;
+                    Week.Live.TecnicosSeguridadTotal = Personas.Count(p => p.EsTecnicoSeguridad);
+                    Week.Live.HorasTrabajadasTotal = Personas.Sum(p => p.D + p.L + p.M + p.MM + p.J + p.V + p.S);
+                }
+            }
+            finally { _isUpdatingTotals = false; }
         }
 
         // ===== Persistencia =====
@@ -375,7 +397,7 @@ namespace ConcentradoKPI.App.ViewModels
 
                 Week.PersonalVigenteDocument = doc;
 
-                // Opcional, garantiza consistencia post-guardar
+                // Recalcular Live a partir del documento recién persistido (sin NotifyAll)
                 LiveSyncService.Recalc(Week, doc);
             }
             finally

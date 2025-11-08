@@ -43,72 +43,66 @@ namespace ConcentradoKPI.App.Views
 
         private void LoadView(AppView v)
         {
+            // 0) Liberar la vista/VM anterior si implementa IDisposable
+            if (BodyHost.Content is FrameworkElement oldView && oldView.DataContext is IDisposable oldVm)
+                oldVm.Dispose();
+
             switch (v)
             {
                 case AppView.PersonalVigente:
                     {
-                        var view = new PersonalVigenteView
-                        {
-                            DataContext = new PersonalVigenteViewModel(_company, _project, _week)
-                        };
+                        var vm = new PersonalVigenteViewModel(_company, _project, _week);
+                        var view = new PersonalVigenteView { DataContext = vm };
                         BodyHost.Content = view;
                         TopBarControl.Title = "Personal vigente";
-                        // 🔔 Asegura que cualquier VM que escuche a Live arranque con estado actual
-                        _week.Live.NotifyAll();
+                        // OJO: evita NotifyAll() si te generaba reentradas
+                        // _week.Live.NotifyAll();
                         CommandManager.InvalidateRequerySuggested();
                         break;
                     }
                 case AppView.PiramideSeguridad:
                     {
-                        var view = new PiramideSeguridadView
-                        {
-                            DataContext = new PiramideSeguridadViewModel(_company, _project, _week)
-                        };
+                        var vm = new PiramideSeguridadViewModel(_company, _project, _week);
+                        var view = new PiramideSeguridadView { DataContext = vm };
                         BodyHost.Content = view;
                         TopBarControl.Title = "Pirámide de seguridad";
-                        // 🔔 Dispara que el VM de pirámide lea del Live al instante
-                        _week.Live.NotifyAll();
+                        // _week.Live.NotifyAll();
                         CommandManager.InvalidateRequerySuggested();
                         break;
                     }
                 case AppView.InformeSemanalCma:
                     {
-                        var view = new InformeSemanalCmaView
-                        {
-                            DataContext = new InformeSemanalCMAViewModel(_company, _project, _week)
-                        };
+                        var vm = new InformeSemanalCMAViewModel(_company, _project, _week);
+                        var view = new InformeSemanalCmaView { DataContext = vm };
                         BodyHost.Content = view;
                         TopBarControl.Title = "Informe semanal CMA";
-                        _week.Live.NotifyAll();
+                        // _week.Live.NotifyAll();
                         CommandManager.InvalidateRequerySuggested();
                         break;
                     }
                 case AppView.PrecursorSif:
                     {
-                        var view = new PrecursorSifView
-                        {
-                            DataContext = new PrecursorSifViewModel(_company, _project, _week)
-                        };
+                        var vm = new PrecursorSifViewModel(_company, _project, _week);
+                        var view = new PrecursorSifView { DataContext = vm };
                         BodyHost.Content = view;
                         TopBarControl.Title = "Precursor SIF";
-                        _week.Live.NotifyAll();
+                        // _week.Live.NotifyAll();
                         CommandManager.InvalidateRequerySuggested();
                         break;
                     }
                 case AppView.Incidentes:
                     {
-                        var view = new IncidentesView
-                        {
-                            DataContext = new IncidentesViewModel(_company, _project, _week)
-                        };
+                        var vm = new IncidentesViewModel(_company, _project, _week);
+                        var view = new IncidentesView { DataContext = vm };
                         BodyHost.Content = view;
                         TopBarControl.Title = "Incidentes";
-                        _week.Live.NotifyAll();
+                        // _week.Live.NotifyAll();
                         CommandManager.InvalidateRequerySuggested();
                         break;
                     }
             }
         }
+
 
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
@@ -135,5 +129,14 @@ namespace ConcentradoKPI.App.Views
                                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        protected override void OnClosed(EventArgs e)
+        {
+            // Intenta disponer la vista actual si su VM implementa IDisposable
+            if (BodyHost?.Content is FrameworkElement fe && fe.DataContext is IDisposable disp)
+                disp.Dispose();
+
+            base.OnClosed(e);
+        }
+
     }
 }

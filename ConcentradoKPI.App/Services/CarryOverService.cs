@@ -51,6 +51,7 @@ namespace ConcentradoKPI.App.Services
                     RFCCompania = src.RFCCompania,
                     DireccionLegal = src.DireccionLegal,
                     NumeroProveedor = src.NumeroProveedor,
+                    OrdenCompra = src.OrdenCompra,
                     Fecha = DateTime.Today,
                     Personal = new List<PersonRow>()
                 };

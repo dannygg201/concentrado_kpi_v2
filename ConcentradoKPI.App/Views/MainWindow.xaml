@@ -10,6 +10,67 @@
 
     <Window.Resources>
         <conv:EnumToViewConverter x:Key="EnumToView"/>
+
+        <!-- Paleta -->
+        <SolidColorBrush x:Key="Col.Navy" Color="#11254a"/>
+        <SolidColorBrush x:Key="Col.Navy.Dark" Color="#0B1E3A"/>
+        <SolidColorBrush x:Key="Col.White" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="Col.White.12" Color="#1FFFFFFF"/>
+        <SolidColorBrush x:Key="Col.White.24" Color="#3DFFFFFF"/>
+
+        <!-- Botón tipo “ghost” para topbar oscuro -->
+        <Style x:Key="TopBarGhostButton" TargetType="Button">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource Col.White}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Col.White.12}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter Margin="4,0"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Col.White.12}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource Col.White.24}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Col.White.24}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Contenido con icono MDL2 + texto -->
+        <DataTemplate x:Key="BtnContent.Open">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                <TextBlock Text="Abrir"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="BtnContent.SaveAs">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                <TextBlock Text="Guardar como"/>
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
 
     <Window.DataContext>
@@ -26,29 +87,69 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- TOP BAR -->
-        <DockPanel Grid.Row="0" Grid.ColumnSpan="2" Background="#11254a" LastChildFill="False">
-            <TextBlock Text="Smart KPI" Foreground="White" Margin="16,0"
-                       FontSize="20" FontWeight="Bold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-            <StackPanel Orientation="Horizontal" Margin="8" DockPanel.Dock="Right">
-                <Button Content="Abrir" Margin="4" Padding="12,6"
-                        Command="{Binding ImportCommand}">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="IsEnabled" Value="False"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Companies.Count}" Value="0">
-                                    <Setter Property="IsEnabled" Value="True"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
+        <!-- TOP BAR (Grid de 3 columnas para centrar SplashScreen) -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="#11254a">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <!-- Izquierda -->
+                <ColumnDefinition Width="*"/>
+                <!-- Centro -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- Derecha -->
+            </Grid.ColumnDefinitions>
 
-                <Button Content="Guardar como" Margin="4" Padding="12,6"
-                        Command="{Binding ExportCommand}"/>
+            <!-- IZQUIERDA: Logos 1 y 2 -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                <Image Source="/Assets/modelo_blanco.png"
+                       Height="44" Stretch="Uniform"
+                       VerticalAlignment="Center" Margin="0,0,10,0"
+                       ToolTip="Logo 1"/>
+                <Image Source="/Assets/ABI_Logo.png"
+                       Height="44" Stretch="Uniform"
+                       VerticalAlignment="Center" Margin="0,0,10,0"
+                       ToolTip="Logo 2"/>
             </StackPanel>
-        </DockPanel>
+
+            <!-- CENTRO: SplashScreen centrado -->
+            <Image Grid.Column="1"
+                   Source="/Assets/SplashScreen.png"
+                   Height="48" Stretch="Uniform"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   ToolTip="Splash"/>
+
+           <!-- DERECHA: Logo 3 + botones -->
+<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,10,0">
+    <Image Source="/Assets/top_tres.png"
+           Height="40" Stretch="Uniform"
+           VerticalAlignment="Center" Margin="0,0,10,0"
+           ToolTip="Logo 3"/>
+
+    <!-- ABRIR: hereda de TopBarGhostButton y añade habilitación condicional -->
+    <Button Margin="4" Command="{Binding ImportCommand}">
+        <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource TopBarGhostButton}">
+                <Setter Property="ContentTemplate" Value="{StaticResource BtnContent.Open}"/>
+                <Setter Property="IsEnabled" Value="False"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Companies.Count}" Value="0">
+                        <Setter Property="IsEnabled" Value="True"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Button.Style>
+    </Button>
+
+    <!-- GUARDAR COMO: hereda de TopBarGhostButton sin triggers adicionales -->
+    <Button Margin="4" Command="{Binding ExportCommand}">
+        <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource TopBarGhostButton}">
+                <Setter Property="ContentTemplate" Value="{StaticResource BtnContent.SaveAs}"/>
+            </Style>
+        </Button.Style>
+    </Button>
+</StackPanel>
+        </Grid>
 
         <!-- SIDEBAR -->
         <Grid Grid.Row="1" Grid.Column="0" Background="#F7F7F7">

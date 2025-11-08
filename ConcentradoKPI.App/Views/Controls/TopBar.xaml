@@ -1,58 +1,164 @@
 ﻿<UserControl x:Class="ConcentradoKPI.App.Views.Controls.TopBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Name="Root" Height="56">
-    <DockPanel Background="#11254a" LastChildFill="False">
-        <!-- LADO IZQUIERDO: 2 logos + texto + 1 logo -->
-        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="10,0">
-            <!-- Logo 1 (izquierda) -->
-            <Image Source="/Assets/modelo_blanco.png"
-                   Height="60" Stretch="Uniform"
-                   VerticalAlignment="Center" Margin="0,0,10,0"
-                   ToolTip="Logo 1"/>
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             x:Name="Root"
+             Height="56"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
 
-            <!-- Logo 2 (antes del texto) -->
-            <Image Source="/Assets/ABI_Logo.png"
-                   Height="30" Stretch="Uniform"
-                   VerticalAlignment="Center" Margin="0,0,10,0"
-                   ToolTip="Logo 2"/>
+    <!-- ==================== RESOURCES ==================== -->
+    <UserControl.Resources>
+        <!-- Paleta -->
+        <SolidColorBrush x:Key="Col.Navy" Color="#11254a"/>
+        <SolidColorBrush x:Key="Col.White" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="Col.White.10" Color="#1AFFFFFF"/>
+        <SolidColorBrush x:Key="Col.White.18" Color="#2EFFFFFF"/>
+        <SolidColorBrush x:Key="Col.White.26" Color="#42FFFFFF"/>
 
-            <!-- TEXTO (lo que ya tenías) -->
-            <TextBlock FontSize="20"
-                       FontWeight="Bold"
-                       Foreground="White"
-                       VerticalAlignment="Center">
-                <Run>
-                    <Run.Text>
-                        <PriorityBinding>
-                            <Binding ElementName="Root" Path="Title"/>
-                            <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="Title"/>
-                        </PriorityBinding>
-                    </Run.Text>
-                </Run>
-                <Run Text=" — " />
-                <Run Text="{Binding Company.Name, TargetNullValue=''}"/>
-                <Run Text=" — Proyecto: " />
-                <Run Text="{Binding Project.Name, TargetNullValue=''}"/>
-                <Run Text=" | Semana " />
-                <Run Text="{Binding Week.WeekNumber, TargetNullValue=''}"/>
-            </TextBlock>
+        <!-- Tamaños -->
+        <sys:Double x:Key="LogoPx">44</sys:Double>
+        <sys:Int32  x:Key="LogoDecodePx">44</sys:Int32>
 
-           
+        <!-- Logos decodificados al tamaño -->
+        <BitmapImage x:Key="LogoModelo"  UriSource="/Assets/modelo_blanco.png" DecodePixelHeight="{StaticResource LogoDecodePx}" CacheOption="OnLoad" CreateOptions="IgnoreColorProfile"/>
+        <BitmapImage x:Key="LogoAbi"     UriSource="/Assets/ABI_Logo.png"      DecodePixelHeight="{StaticResource LogoDecodePx}" CacheOption="OnLoad" CreateOptions="IgnoreColorProfile"/>
+        <BitmapImage x:Key="LogoDerecha" UriSource="/Assets/top_tres.png"       DecodePixelHeight="{StaticResource LogoDecodePx}" CacheOption="OnLoad" CreateOptions="IgnoreColorProfile"/>
+
+        <!-- Botón ghost -->
+        <Style x:Key="TopBarGhostButton" TargetType="Button">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource Col.White}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Col.White.10}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" SnapsToDevicePixels="True">
+                            <ContentPresenter Margin="4,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Col.White.10}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource Col.White.26}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Col.White.18}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Contenidos con icono MDL2 -->
+        <DataTemplate x:Key="BtnContent.Save">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                <TextBlock Text="Guardar"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="BtnContent.Exit">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                <TextBlock Text="Salir"/>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!-- ==================== LAYOUT ==================== -->
+    <!-- Grid: [Logos izq][TEXTO (se expande)][Logo+Botones der] -->
+    <Grid Background="{StaticResource Col.Navy}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <!-- <- el texto ocupa todo el espacio disponible -->
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- IZQUIERDA: 2 logos -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+            <Image Source="{StaticResource LogoModelo}" Height="{StaticResource LogoPx}" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <Image Source="{StaticResource LogoAbi}"    Height="{StaticResource LogoPx}" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,12,0"/>
         </StackPanel>
 
-        <!-- LADO DERECHO: Botones -->
-        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="8,0" VerticalAlignment="Center">
-            <!-- Logo 3 (después del texto) -->
-            <Image Source="/Assets/top_tres.png"
-        Height="50" Stretch="Uniform"
-        VerticalAlignment="Center" Margin="10,0,0,0"
-        ToolTip="Logo 3"/>
-            <Button Content="Guardar" Margin="4" Padding="12,6"
-                    Command="ApplicationCommands.Save"
-                    CommandTarget="{Binding ElementName=Root, Path=CommandTarget}"/>
-            <Button Content="Salir" Margin="4" Padding="12,6"
-                    Click="Salir_Click"/>
+        <!-- CENTRO: TEXTO elíptico que se expande -->
+        <TextBlock Grid.Column="1"
+                   Margin="8,0"
+                   FontSize="20" FontWeight="Bold"
+                   Foreground="{StaticResource Col.White}"
+                   VerticalAlignment="Center"
+                   TextWrapping="NoWrap"
+                   TextTrimming="CharacterEllipsis"
+                   ToolTipService.ShowDuration="60000">
+            <!-- Texto visible -->
+            <Run>
+                <Run.Text>
+                    <PriorityBinding>
+                        <Binding ElementName="Root" Path="Title"/>
+                        <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="Title"/>
+                    </PriorityBinding>
+                </Run.Text>
+            </Run>
+            <Run Text=" — "/>
+            <Run Text="{Binding Company.Name,  TargetNullValue=''}"/>
+            <Run Text=" - "/>
+            <Run Text="{Binding Project.Name,  TargetNullValue=''}"/>
+            <Run Text=" | Semana: "/>
+            <Run Text="{Binding Week.WeekNumber, TargetNullValue=''}"/>
+
+            <!-- Tooltip con el texto completo (sin cortar) -->
+            <TextBlock.ToolTip>
+                <TextBlock>
+                    <Run>
+                        <Run.Text>
+                            <PriorityBinding>
+                                <Binding ElementName="Root" Path="Title"/>
+                                <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="Title"/>
+                            </PriorityBinding>
+                        </Run.Text>
+                    </Run>
+                    <Run Text=" — "/>
+                    <Run Text="{Binding Company.Name,  TargetNullValue=''}"/>
+                    <Run Text=" | "/>
+                    <Run Text="{Binding Project.Name,  TargetNullValue=''}"/>
+                    <Run Text=" | Semana: "/>
+                    <Run Text="{Binding Week.WeekNumber, TargetNullValue=''}"/>
+                </TextBlock>
+            </TextBlock.ToolTip>
+        </TextBlock>
+
+        <!-- DERECHA: logo + separador + botones -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,12,0">
+            <Image Source="{StaticResource LogoDerecha}" Height="{StaticResource LogoPx}" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <Rectangle Width="1" Height="28" Fill="{StaticResource Col.White.10}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+
+            <Button Margin="4" Command="ApplicationCommands.Save" CommandTarget="{Binding ElementName=Root, Path=CommandTarget}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource TopBarGhostButton}">
+                        <Setter Property="ContentTemplate" Value="{StaticResource BtnContent.Save}"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+
+            <Button Margin="4" Click="Salir_Click">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource TopBarGhostButton}">
+                        <Setter Property="ContentTemplate" Value="{StaticResource BtnContent.Exit}"/>
+                    </Style>
+                </Button.Style>
+            </Button>
         </StackPanel>
-    </DockPanel>
+    </Grid>
 </UserControl>

@@ -9,14 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Assets\ABI_Logo.png" />
+    <None Remove="Assets\ABI_logo.png" />
     <None Remove="Assets\modelo_blanco.png" />
     <None Remove="Assets\piramide_limpia.png" />
     <None Remove="Assets\SplashScreen.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\ABI_Logo.png">
+    <Resource Include="Assets\ABI_logo.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\SplashScreen.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Assets\top_tres.png">
@@ -26,9 +29,6 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Assets\piramide_limpia.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Assets\SplashScreen.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>

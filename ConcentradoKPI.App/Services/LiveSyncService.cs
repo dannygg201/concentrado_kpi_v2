@@ -15,7 +15,6 @@ namespace ConcentradoKPI.App.Services
                 week.Live.ColaboradoresTotal = 0;
                 week.Live.TecnicosSeguridadTotal = 0;
                 week.Live.HorasTrabajadasTotal = 0;
-                week.Live.NotifyAll();
                 return;
             }
 
@@ -28,7 +27,6 @@ namespace ConcentradoKPI.App.Services
             week.Live.TecnicosSeguridadTotal = tecnicos;
             week.Live.HorasTrabajadasTotal = horas;
 
-            week.Live.NotifyAll();
         }
     }
 }
