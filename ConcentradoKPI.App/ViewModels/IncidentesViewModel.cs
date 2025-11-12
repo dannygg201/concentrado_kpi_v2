@@ -1,20 +1,20 @@
-﻿using System.Collections.ObjectModel;
+﻿using ConcentradoKPI.App.Models;
+using ConcentradoKPI.App.Services;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using ConcentradoKPI.App.Models;
+
 
 namespace ConcentradoKPI.App.ViewModels
 {
     public class IncidentesViewModel : INotifyPropertyChanged
     {
-        // ✅ Propiedades que necesita el TopBar
         public Company Company { get; }
         public Project Project { get; }
         public WeekData Week { get; }
 
         public string EncabezadoDescripcion { get; }
-
         public ObservableCollection<IncidentRecord> Registros { get; } = new();
 
         private IncidentRecord? _seleccionado;
@@ -44,51 +44,26 @@ namespace ConcentradoKPI.App.ViewModels
             }
         }
 
-        // Catálogos
-        public string[] Uens { get; } = new[] { "CMA", "Comportamiento", "Condición", "Potencial", "Precursor", "Real" };
-        public string[] Clasificaciones { get; } = new[] { "LTI", "MDI", "MTI", "FAI", "Incidente" };
+        public string[] Clasificaciones { get; } = { "LTI", "MDI", "MTI", "FAI", "INCIDENTE" };
 
-        // Comandos
         public ICommand AgregarCmd { get; }
         public ICommand GuardarCmd { get; }
         public ICommand EliminarCmd { get; }
-        public ICommand LimpiarCmd { get; }
 
         public int TotalRegistros => Registros.Count;
 
-        // ✅ Constructor REAL (objetos) — para runtime
         public IncidentesViewModel(Company c, Project p, WeekData w)
         {
-            Company = c;
-            Project = p;
-            Week = w;
-
+            Company = c; Project = p; Week = w;
             EncabezadoDescripcion = $"Semana {w.WeekNumber}  |  {p.Name}";
 
-            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());
-            GuardarCmd = new RelayCommand(_ => Guardar(), _ => Seleccionado != null);
+            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar() && Seleccionado == null);
+            GuardarCmd = new RelayCommand(_ => Guardar(), _ => PuedeAgregar() && Seleccionado != null);
             EliminarCmd = new RelayCommand(_ => Eliminar(), _ => Seleccionado != null);
-            LimpiarCmd = new RelayCommand(_ => Limpiar());
 
             Registros.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalRegistros));
-        }
 
-        // 🧪 Constructor DISEÑO/PRUEBA (strings) — mantiene compatibilidad
-        public IncidentesViewModel(string semana, string proyecto)
-        {
-            // Dummies para que el TopBar tenga datos cuando se use este ctor
-            Company = new Company { Name = "Demo Co." };
-            Project = new Project { Name = string.IsNullOrWhiteSpace(proyecto) ? "Proyecto Demo" : proyecto };
-            Week = new WeekData { WeekNumber = int.TryParse(semana, out var n) ? n : 1 };
-
-            EncabezadoDescripcion = $"Semana {semana}  |  {proyecto}";
-
-            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());
-            GuardarCmd = new RelayCommand(_ => Guardar(), _ => Seleccionado != null);
-            EliminarCmd = new RelayCommand(_ => Eliminar(), _ => Seleccionado != null);
-            LimpiarCmd = new RelayCommand(_ => Limpiar());
-
-            Registros.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalRegistros));
+            if (string.IsNullOrWhiteSpace(Form.UEN)) Form.UEN = "CMC";
         }
 
         private bool PuedeAgregar()
@@ -100,16 +75,28 @@ namespace ConcentradoKPI.App.ViewModels
 
         private void Agregar()
         {
+            if (string.IsNullOrWhiteSpace(Form.UEN)) Form.UEN = "CMC";
+
             var nuevo = Form.Clone();
             nuevo.No = Registros.Count + 1;
             Registros.Add(nuevo);
-            Limpiar();
+
+            // Limpia y des-selecciona
+            Seleccionado = null;
+            Form = new IncidentRecord { UEN = "CMC" };
+            ProjectStorageService.MarkDirty();
         }
 
         private void Guardar()
         {
             if (Seleccionado is null) return;
+
             Seleccionado.CopyFrom(Form);
+
+            // Limpia y des-selecciona
+            Seleccionado = null;
+            Form = new IncidentRecord { UEN = "CMC" };
+            ProjectStorageService.MarkDirty();
         }
 
         private void Eliminar()
@@ -118,25 +105,28 @@ namespace ConcentradoKPI.App.ViewModels
             var idx = Registros.IndexOf(Seleccionado);
             if (idx >= 0) Registros.RemoveAt(idx);
             Reenumerar();
-            Limpiar();
+
+            // Limpia y des-selecciona
+            Seleccionado = null;
+            Form = new IncidentRecord { UEN = "CMC" };
+            ProjectStorageService.MarkDirty();
         }
 
         private void Reenumerar()
         {
-            for (int i = 0; i < Registros.Count; i++)
-                Registros[i].No = i + 1;
-        }
-
-        private void Limpiar()
-        {
-            Seleccionado = null;
-            Form = new IncidentRecord();
+            for (int i = 0; i < Registros.Count; i++) Registros[i].No = i + 1;
         }
 
         private void CargarEnFormulario(IncidentRecord? r)
         {
-            if (r == null) return;
+            if (r == null)
+            {
+                // Modo “agregar”
+                Form = new IncidentRecord { UEN = "CMC" };
+                return;
+            }
             Form = r.Clone();
+            if (string.IsNullOrWhiteSpace(Form.UEN)) Form.UEN = "CMC";
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

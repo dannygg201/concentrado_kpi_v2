@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.ViewModels;
 using ConcentradoKPI.App.Views.Abstractions;
+using ConcentradoKPI.App.Services;
 
 namespace ConcentradoKPI.App.Views.Pages
 {
@@ -76,6 +77,7 @@ namespace ConcentradoKPI.App.Views.Pages
             };
             if (dlg.ShowDialog() == true)
                 ApplyValuesToVm(dlg.Result);
+            ProjectStorageService.MarkDirty();
         }
 
         private void PiramideSeguridadView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

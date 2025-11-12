@@ -3,12 +3,13 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using ConcentradoKPI.App.Models;
+using ConcentradoKPI.App.Services;
 
 namespace ConcentradoKPI.App.ViewModels
 {
     public class PrecursorSifViewModel : INotifyPropertyChanged
     {
-        // ✅ Propiedades que usa el TopBar
+        // TopBar
         public Company Company { get; }
         public Project Project { get; }
         public WeekData Week { get; }
@@ -45,19 +46,18 @@ namespace ConcentradoKPI.App.ViewModels
             }
         }
 
-        // UEN con los valores que pediste
-        public string[] Uens { get; } =
-            new[] { "CMA", "Comportamiento", "Condición", "Potencial", "Precursor", "Real" };
+        // Opciones
+        public string[] PrecursorSifOpciones { get; } = { "Precursor", "Potencial", "Real" };
+        public string[] TipoPrecursorOpciones { get; } = { "Comportamiento", "Condición" };
 
         // Comandos
         public ICommand AgregarCmd { get; }
         public ICommand GuardarCmd { get; }
         public ICommand EliminarCmd { get; }
-        public ICommand LimpiarCmd { get; }
 
         public int TotalRegistros => Registros.Count;
 
-        // ✅ Constructor REAL (objetos)
+        // Runtime
         public PrecursorSifViewModel(Company c, Project p, WeekData w)
         {
             Company = c;
@@ -66,15 +66,17 @@ namespace ConcentradoKPI.App.ViewModels
 
             EncabezadoDescripcion = $"Semana {w.WeekNumber}  |  {p.Name}";
 
-            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());
-            GuardarCmd = new RelayCommand(_ => Guardar(), _ => Seleccionado != null);
+            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar() && Seleccionado == null);
+            GuardarCmd = new RelayCommand(_ => Guardar(), _ => PuedeAgregar() && Seleccionado != null);
             EliminarCmd = new RelayCommand(_ => Eliminar(), _ => Seleccionado != null);
-            LimpiarCmd = new RelayCommand(_ => Limpiar());
 
             Registros.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalRegistros));
+
+            if (string.IsNullOrWhiteSpace(Form.UEN))
+                Form.UEN = "CMC";
         }
 
-        // 🧪 Constructor de diseño/prueba (strings)
+        // Diseño/prueba
         public PrecursorSifViewModel(string semana, string proyecto)
         {
             Company = new Company { Name = "Demo Co." };
@@ -83,42 +85,63 @@ namespace ConcentradoKPI.App.ViewModels
 
             EncabezadoDescripcion = $"Semana {semana}  |  {proyecto}";
 
-            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar());
-            GuardarCmd = new RelayCommand(_ => Guardar(), _ => Seleccionado != null);
+            AgregarCmd = new RelayCommand(_ => Agregar(), _ => PuedeAgregar() && Seleccionado == null);
+            GuardarCmd = new RelayCommand(_ => Guardar(), _ => PuedeAgregar() && Seleccionado != null);
             EliminarCmd = new RelayCommand(_ => Eliminar(), _ => Seleccionado != null);
-            LimpiarCmd = new RelayCommand(_ => Limpiar());
 
             Registros.CollectionChanged += (_, __) => OnPropertyChanged(nameof(TotalRegistros));
+
+            if (string.IsNullOrWhiteSpace(Form.UEN))
+                Form.UEN = "CMC";
         }
 
         private bool PuedeAgregar()
         {
             return !string.IsNullOrWhiteSpace(Form.NombreInvolucrado)
                 && !string.IsNullOrWhiteSpace(Form.CompaniaContratista)
-                && !string.IsNullOrWhiteSpace(Form.PrecursorSif);
+                && !string.IsNullOrWhiteSpace(Form.PrecursorSif)
+                && !string.IsNullOrWhiteSpace(Form.TipoPrecursor);
         }
 
         private void Agregar()
         {
+            if (string.IsNullOrWhiteSpace(Form.UEN))
+                Form.UEN = "CMC";
+
             var nuevo = Form.Clone();
             nuevo.No = Registros.Count + 1;
             Registros.Add(nuevo);
-            Limpiar();
+
+            // limpiar y des-seleccionar
+            Seleccionado = null;
+            Form = new PrecursorSifRecord { UEN = "CMC" };
+            ProjectStorageService.MarkDirty();
         }
 
         private void Guardar()
         {
             if (Seleccionado is null) return;
+
             Seleccionado.CopyFrom(Form);
+
+            // limpiar y des-seleccionar
+            Seleccionado = null;
+            Form = new PrecursorSifRecord { UEN = "CMC" };
+            ProjectStorageService.MarkDirty();
         }
 
         private void Eliminar()
         {
             if (Seleccionado is null) return;
+
             var idx = Registros.IndexOf(Seleccionado);
             if (idx >= 0) Registros.RemoveAt(idx);
             Reenumerar();
-            Limpiar();
+
+            // limpiar y des-seleccionar
+            Seleccionado = null;
+            Form = new PrecursorSifRecord { UEN = "CMC" };
+            ProjectStorageService.MarkDirty();
         }
 
         private void Reenumerar()
@@ -127,16 +150,18 @@ namespace ConcentradoKPI.App.ViewModels
                 Registros[i].No = i + 1;
         }
 
-        private void Limpiar()
-        {
-            Seleccionado = null;
-            Form = new PrecursorSifRecord();
-        }
-
         private void CargarEnFormulario(PrecursorSifRecord? r)
         {
-            if (r == null) return;
+            if (r == null)
+            {
+                // modo “agregar”
+                Form = new PrecursorSifRecord { UEN = "CMC" };
+                return;
+            }
+
             Form = r.Clone();
+            if (string.IsNullOrWhiteSpace(Form.UEN))
+                Form.UEN = "CMC";
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

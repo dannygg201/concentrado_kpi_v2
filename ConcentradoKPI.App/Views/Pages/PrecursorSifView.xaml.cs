@@ -69,8 +69,41 @@ namespace ConcentradoKPI.App.Views.Pages
             if (DataContext is not PrecursorSifViewModel vm) return;
             if (_company is null || _project is null || _week is null) return;
 
+            // 1) Snapshot de la lista actual
             var items = vm.Registros?.Select(r => r.Clone()).ToList() ?? new();
 
+            // 2) Volcar formulario pendiente
+            //    a) Si hay selección, actualizamos ese registro en el snapshot
+            if (vm.Seleccionado is not null)
+            {
+                var idx = vm.Registros.IndexOf(vm.Seleccionado);
+                if (idx >= 0)
+                {
+                    var edited = vm.Form.Clone();
+                    edited.No = items.ElementAtOrDefault(idx)?.No ?? (idx + 1);
+                    items[idx] = edited;
+                }
+            }
+            //    b) Si no hay selección y el form está completo (equivalente a PuedeAgregar),
+            //       lo incluimos en el snapshot SIN tocar la UI.
+            else
+            {
+                bool formCompleto =
+                    !string.IsNullOrWhiteSpace(vm.Form.NombreInvolucrado) &&
+                    !string.IsNullOrWhiteSpace(vm.Form.CompaniaContratista) &&
+                    !string.IsNullOrWhiteSpace(vm.Form.PrecursorSif) &&
+                    !string.IsNullOrWhiteSpace(vm.Form.TipoPrecursor);
+
+                if (formCompleto)
+                {
+                    var nuevo = vm.Form.Clone();
+                    nuevo.UEN = string.IsNullOrWhiteSpace(nuevo.UEN) ? "CMC" : nuevo.UEN;
+                    nuevo.No = items.Count + 1;
+                    items.Add(nuevo);
+                }
+            }
+
+            // 3) Persistir en WeekData
             _week.PrecursorSif = new PrecursorSifDocument
             {
                 Company = _company.Name,
@@ -80,6 +113,7 @@ namespace ConcentradoKPI.App.Views.Pages
                 SavedUtc = DateTime.UtcNow
             };
         }
+
 
         // ===== Cargar VM desde WeekData.PrecursorSif (si existe) =====
         private void HydrateFromWeek()

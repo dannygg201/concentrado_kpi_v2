@@ -154,12 +154,13 @@
                         <!-- Fila 1 -->
                         <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,0">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="UEN"/>
-                            <ComboBox ItemsSource="{Binding Uens}"
-                                      SelectedItem="{Binding Form.UEN, UpdateSourceTrigger=PropertyChanged}"
-                                      Style="{StaticResource RoundedCombo}"/>
+                            <!-- UEN sin lista, fijo a CMC y solo lectura -->
+                            <TextBox Text="{Binding Form.UEN, UpdateSourceTrigger=PropertyChanged}"
+                                IsReadOnly="True"
+                                Style="{StaticResource RoundedTextBox}"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Nombre del involucrado"/>
                             <TextBox Text="{Binding Form.NombreInvolucrado, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource RoundedTextBox}"/>
@@ -179,17 +180,21 @@
                         </StackPanel>
 
                         <!-- Fila 3 -->
+                        <!-- Fila 3 -->
                         <StackPanel Grid.Row="6" Grid.Column="0" Margin="0,0,10,0">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Precursor SIF"/>
-                            <TextBox Text="{Binding Form.PrecursorSif, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource RoundedTextBox}"/>
+                            <ComboBox ItemsSource="{Binding PrecursorSifOpciones}"
+                                  SelectedItem="{Binding Form.PrecursorSif, UpdateSourceTrigger=PropertyChanged}"
+                                  Style="{StaticResource RoundedCombo}"/>   
                         </StackPanel>
 
                         <StackPanel Grid.Row="6" Grid.Column="1" Margin="10,0,0,0">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Tipo de precursor"/>
-                            <TextBox Text="{Binding Form.TipoPrecursor, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource RoundedTextBox}"/>
+                            <ComboBox ItemsSource="{Binding TipoPrecursorOpciones}"
+                                  SelectedItem="{Binding Form.TipoPrecursor, UpdateSourceTrigger=PropertyChanged}"
+                                  Style="{StaticResource RoundedCombo}"/>
                         </StackPanel>
+
 
                         <!-- Descripción -->
                         <StackPanel Grid.Row="8" Grid.ColumnSpan="2">
@@ -215,8 +220,7 @@
                                     HorizontalAlignment="Right">
                             <Button Content="Agregar"  Command="{Binding AgregarCmd}"  Padding="14,4" Margin="0,0,8,0"/>
                             <Button Content="Guardar"  Command="{Binding GuardarCmd}"  Padding="14,4" Margin="0,0,8,0"/>
-                            <Button Content="Eliminar" Command="{Binding EliminarCmd}" Padding="14,4" Margin="0,0,8,0"/>
-                            <Button Content="Limpiar"  Command="{Binding LimpiarCmd}"  Padding="14,4"/>
+                            <Button Content="Eliminar" Command="{Binding EliminarCmd}" Padding="14,4"/>
                         </StackPanel>
                     </Grid>
                 </Border>

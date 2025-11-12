@@ -62,17 +62,49 @@ namespace ConcentradoKPI.App.Views.Pages
             if (DataContext is not IncidentesViewModel vm) return;
             if (_company is null || _project is null || _week is null) return;
 
-            var snapshot = vm.Registros?.Select(r => r.Clone()).ToList() ?? new();
+            // 1) Snapshot de la lista
+            var items = vm.Registros?.Select(r => r.Clone()).ToList() ?? new();
 
+            // 2) Volcar formulario pendiente
+            if (vm.Seleccionado is not null)
+            {
+                var idx = vm.Registros.IndexOf(vm.Seleccionado);
+                if (idx >= 0)
+                {
+                    var edited = vm.Form.Clone();
+                    edited.No = items.ElementAtOrDefault(idx)?.No ?? (idx + 1);
+                    // Asegura UEN default
+                    edited.UEN = string.IsNullOrWhiteSpace(edited.UEN) ? "CMC" : edited.UEN;
+                    items[idx] = edited;
+                }
+            }
+            else
+            {
+                bool formCompleto =
+                    !string.IsNullOrWhiteSpace(vm.Form.NombreInvolucrado) &&
+                    !string.IsNullOrWhiteSpace(vm.Form.CompaniaContratista) &&
+                    !string.IsNullOrWhiteSpace(vm.Form.Clasificacion);
+
+                if (formCompleto)
+                {
+                    var nuevo = vm.Form.Clone();
+                    nuevo.UEN = string.IsNullOrWhiteSpace(nuevo.UEN) ? "CMC" : nuevo.UEN;
+                    nuevo.No = items.Count + 1;
+                    items.Add(nuevo);
+                }
+            }
+
+            // 3) Persistir en WeekData
             _week.Incidentes = new IncidentesDocument
             {
                 Company = _company.Name,
                 Project = _project.Name,
                 WeekNumber = _week.WeekNumber,
-                Items = snapshot,
+                Items = items,
                 SavedUtc = DateTime.UtcNow
             };
         }
+
 
         // ===== Persistido -> VM =====
         private void HydrateFromWeek()

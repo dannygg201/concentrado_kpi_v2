@@ -39,7 +39,7 @@ namespace ConcentradoKPI.App.Services
             }
             return new Model();
         }
-
+        
         private static void Save(Model m)
         {
             try
