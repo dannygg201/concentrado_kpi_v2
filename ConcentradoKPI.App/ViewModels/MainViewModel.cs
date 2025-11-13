@@ -1034,6 +1034,118 @@ namespace ConcentradoKPI.App.ViewModels
 
             // Nota
             targetWeek.Notes = $"Semana {targetWeek.WeekNumber} creada a partir de semana {prev.WeekNumber}";
+
+            // === NUEVA LÓGICA: Base nueva = (Base previa + ISCMA previo)
+            try
+            {
+                if (prev.PiramideSeguridad != null)
+                {
+                    // 1) Tomamos el BASE previo
+                    var basePrev = new PiramideValues
+                    {
+                        Companias = prev.PiramideSeguridad.Companias,
+                        Colaboradores = prev.PiramideSeguridad.Colaboradores,
+                        TecnicosSeguridad = prev.PiramideSeguridad.TecnicosSeguridad,
+                        HorasTrabajadas = prev.PiramideSeguridad.HorasTrabajadas,
+                        WithoutLTIs = prev.PiramideSeguridad.WithoutLTIs,
+                        LastRecord = prev.PiramideSeguridad.LastRecord,
+
+                        TerritoriosRojo = prev.PiramideSeguridad.TerritoriosRojo,
+                        TerritoriosVerde = prev.PiramideSeguridad.TerritoriosVerde,
+
+                        Seguros = prev.PiramideSeguridad.Seguros,
+                        Inseguros = prev.PiramideSeguridad.Inseguros,
+                        Detectadas = prev.PiramideSeguridad.Detectadas,
+                        Corregidas = prev.PiramideSeguridad.Corregidas,
+                        Avance = prev.PiramideSeguridad.Avance,
+                        AvanceProgramaPct = prev.PiramideSeguridad.AvanceProgramaPct,
+                        Efectividad = prev.PiramideSeguridad.Efectividad,
+
+                        Potenciales = prev.PiramideSeguridad.Potenciales,
+                        Precursores1 = prev.PiramideSeguridad.Precursores1,
+                        Precursores2 = prev.PiramideSeguridad.Precursores2,
+                        Precursores3 = prev.PiramideSeguridad.Precursores3,
+
+                        IncidentesSinLesion1 = prev.PiramideSeguridad.IncidentesSinLesion1,
+                        IncidentesSinLesion2 = prev.PiramideSeguridad.IncidentesSinLesion2,
+
+                        FAI1 = prev.PiramideSeguridad.FAI1,
+                        FAI2 = prev.PiramideSeguridad.FAI2,
+                        FAI3 = prev.PiramideSeguridad.FAI3,
+
+                        MTI1 = prev.PiramideSeguridad.MTI1,
+                        MTI2 = prev.PiramideSeguridad.MTI2,
+                        MTI3 = prev.PiramideSeguridad.MTI3,
+
+                        MDI1 = prev.PiramideSeguridad.MDI1,
+                        MDI2 = prev.PiramideSeguridad.MDI2,
+                        MDI3 = prev.PiramideSeguridad.MDI3,
+
+                        LTI1 = prev.PiramideSeguridad.LTI1,
+                        LTI2 = prev.PiramideSeguridad.LTI2,
+                        LTI3 = prev.PiramideSeguridad.LTI3
+                    };
+
+                    // 2) Efectivo previo = basePrev + ISCMA previo
+                    var effectivePrev = PyramidMath.AddWeekly(basePrev, prev.InformeSemanalCma);
+
+                    // 3) Ese EFECTIVO pasa a ser el NUEVO BASE de la semana objetivo
+                    targetWeek.PiramideSeguridad = new PiramideSeguridadDocument
+                    {
+                        Company = prev.PiramideSeguridad.Company,  // conservamos nombres previos
+                        Project = prev.PiramideSeguridad.Project,
+                        WeekNumber = targetWeek.WeekNumber,
+
+                        Companias = effectivePrev.Companias,
+                        Colaboradores = effectivePrev.Colaboradores,
+                        TecnicosSeguridad = effectivePrev.TecnicosSeguridad,
+                        HorasTrabajadas = effectivePrev.HorasTrabajadas,
+                        WithoutLTIs = effectivePrev.WithoutLTIs,
+                        LastRecord = string.IsNullOrWhiteSpace(effectivePrev.LastRecord) ? null : effectivePrev.LastRecord,
+
+                        TerritoriosRojo = effectivePrev.TerritoriosRojo,
+                        TerritoriosVerde = effectivePrev.TerritoriosVerde,
+
+                        Seguros = effectivePrev.Seguros,
+                        Inseguros = effectivePrev.Inseguros,
+                        Detectadas = effectivePrev.Detectadas,
+                        Corregidas = effectivePrev.Corregidas,
+                        Avance = effectivePrev.Avance,
+                        AvanceProgramaPct = effectivePrev.AvanceProgramaPct,
+                        Efectividad = effectivePrev.Efectividad,
+
+                        Potenciales = effectivePrev.Potenciales,
+                        Precursores1 = effectivePrev.Precursores1,
+                        Precursores2 = effectivePrev.Precursores2,
+                        Precursores3 = effectivePrev.Precursores3,
+
+                        IncidentesSinLesion1 = effectivePrev.IncidentesSinLesion1,
+                        IncidentesSinLesion2 = effectivePrev.IncidentesSinLesion2,
+
+                        FAI1 = effectivePrev.FAI1,
+                        FAI2 = effectivePrev.FAI2,
+                        FAI3 = effectivePrev.FAI3,
+
+                        MTI1 = effectivePrev.MTI1,
+                        MTI2 = effectivePrev.MTI2,
+                        MTI3 = effectivePrev.MTI3,
+
+                        MDI1 = effectivePrev.MDI1,
+                        MDI2 = effectivePrev.MDI2,
+                        MDI3 = effectivePrev.MDI3,
+
+                        LTI1 = effectivePrev.LTI1,
+                        LTI2 = effectivePrev.LTI2,
+                        LTI3 = effectivePrev.LTI3,
+
+                        SavedUtc = DateTime.UtcNow
+                    };
+
+                    // (Opcional) Reinicia el informe semanal de la nueva semana
+                    // targetWeek.InformeSemanalCma = null;
+                }
+            }
+            catch { /* no bloquear carry-over si falla algo */ }
         }
 
 

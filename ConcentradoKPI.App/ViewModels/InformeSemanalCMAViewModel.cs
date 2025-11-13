@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
 using ConcentradoKPI.App.Models;
-using ConcentradoKPI.App.Services; // ⬅️ para LastEspecialidadStore
+using ConcentradoKPI.App.Services; // LastEspecialidadStore
 
 namespace ConcentradoKPI.App.ViewModels
 {
@@ -30,6 +30,10 @@ namespace ConcentradoKPI.App.ViewModels
         private int _psK; public int PrecursoresSifCondicion { get => _psK; set { if (Set(ref _psK, value)) RaiseCalc(); } }
         private int _as; public int ActosSeguros { get => _as; set { if (Set(ref _as, value)) RaiseCalc(); } }
         private int _ai; public int ActosInseguros { get => _ai; set { if (Set(ref _ai, value)) RaiseCalc(); } }
+
+        // 🔹 NUEVOS
+        private int _corr; public int Corregidas { get => _corr; set { if (Set(ref _corr, value)) RaiseCalc(); } }
+        private int _det; public int Detectadas { get => _det; set { if (Set(ref _det, value)) RaiseCalc(); } }
 
         public int TotalSemanal =>
             Incidentes + PrecursoresSifComportamiento + PrecursoresSifCondicion + ActosInseguros + ActosSeguros;
@@ -74,38 +78,36 @@ namespace ConcentradoKPI.App.ViewModels
             Editable.TecnicosSeguridad = Week.Live.TecnicosSeguridadTotal;
         }
 
-        // 🔸 Hidratar desde Pirámide
-        private void HydrateFromPiramide(PiramideSeguridadDocument? d)
+        private void HydrateFromSavedWeekly(InformeSemanalCmaDocument? d)
         {
             if (d == null) return;
 
-            int fai = d.FAI1 + d.FAI2 + d.FAI3;
-            int mti = d.MTI1 + d.MTI2 + d.MTI3;
-            int mdi = d.MDI1 + d.MDI2 + d.MDI3;
-            int lti = d.LTI1 + d.LTI2 + d.LTI3;
+            Editable.Nombre = string.IsNullOrWhiteSpace(d.Nombre) ? Editable.Nombre : d.Nombre;
+            if (!string.IsNullOrWhiteSpace(d.Especialidad))
+                Editable.Especialidad = d.Especialidad;
 
-            int incSinLesion = d.IncidentesSinLesion1 + d.IncidentesSinLesion2;
-            int precursoresTotal = d.Precursores1 + d.Precursores2 + d.Precursores3;
+            // No tocar: TecnicosSeguridad, Colaboradores, HorasTrabajadas (vienen de Live)
 
-            Editable.TecnicosSeguridad = d.TecnicosSeguridad;
-            Editable.Colaboradores = d.Colaboradores;
-            Editable.HorasTrabajadas = d.HorasTrabajadas;
+            Editable.LTI = d.LTI;
+            Editable.MDI = d.MDI;
+            Editable.MTI = d.MTI;
+            Editable.TRI = d.TRI;
+            Editable.FAI = d.FAI;
 
-            Editable.FAI = fai;
-            Editable.MTI = mti;
-            Editable.MDI = mdi;
-            Editable.LTI = lti;
+            Editable.Incidentes = d.Incidentes;
 
-            Editable.TRI = mti + mdi + lti;              // TRI típico
-            Editable.Incidentes = incSinLesion;          // Ajusta si ocupas otro criterio
-            Editable.ActosSeguros = d.Seguros;
-            Editable.ActosInseguros = d.Inseguros;
+            Editable.PrecursoresSifComportamiento = d.PrecursoresSifComportamiento;
+            Editable.PrecursoresSifCondicion = d.PrecursoresSifCondicion;
 
-            Editable.PrecursoresSifComportamiento = precursoresTotal;
-            Editable.PrecursoresSifCondicion = d.Detectadas;
+            Editable.ActosSeguros = d.ActosSeguros;
+            Editable.ActosInseguros = d.ActosInseguros;
+
+            // 🔹 Nuevos
+            Editable.Corregidas = d.Corregidas;
+            Editable.Detectadas = d.Detectadas;
         }
 
-        // ✅ Constructor REAL
+
         public InformeSemanalCMAViewModel(
             Company c,
             Project p,
@@ -122,31 +124,20 @@ namespace ConcentradoKPI.App.ViewModels
             Editable.Nombre = string.IsNullOrWhiteSpace(nombreInicial) ? c.Name : nombreInicial;
             Editable.Especialidad = especialidadInicial;
 
-            // 1) Pull inicial desde Live
+            // 1) Live primero
             PullFromLiveToEditable();
 
-            // 2) Pull inicial desde Pirámide
-            HydrateFromPiramide(Week?.PiramideSeguridad);
+            // 2) Ya no jalamos de Pirámide (se queda en blanco si no hay informe guardado)
+            HydrateFromSavedWeekly(Week?.InformeSemanalCma);
 
-            // 3) Si la semana actual YA tiene informe con especialidad, úsalo
-            if (Week?.InformeSemanalCma is InformeSemanalCmaDocument d &&
-                !string.IsNullOrWhiteSpace(d.Especialidad))
+            // 3) Última especialidad usada
+            if (string.IsNullOrWhiteSpace(Editable.Especialidad))
             {
-                Editable.Especialidad = d.Especialidad;
-            }
-            else
-            {
-                // 4) Si sigue vacío, intenta recuperar el último valor usado (si no existe, queda vacío)
-                if (string.IsNullOrWhiteSpace(Editable.Especialidad))
-                {
-                    var last = LastEspecialidadStore.Get(Company?.Name ?? "", Project?.Name ?? "");
-                    if (!string.IsNullOrWhiteSpace(last))
-                        Editable.Especialidad = last!;
-                    // si last es null/empty => permanece vacío ✔️
-                }
+                var last = LastEspecialidadStore.Get(Company?.Name ?? "", Project?.Name ?? "");
+                if (!string.IsNullOrWhiteSpace(last)) Editable.Especialidad = last!;
             }
 
-            // 5) Suscripción a cambios de Live -> volver a jalar
+            // 4) Suscripción Live (solo esos 3)
             if (Week?.Live != null)
             {
                 Week.Live.PropertyChanged += (_, e) =>
@@ -161,16 +152,16 @@ namespace ConcentradoKPI.App.ViewModels
                 };
             }
 
-            // 6) Recalcular totales al cambiar Editable
+            // 5) Totales espejo
             Editable.PropertyChanged += (_, __) => RecalcularTotales();
             RecalcularTotales();
 
-            // 7) Llenar Items
+            // 6) Items
             Cards.Add(Editable);
             Cards.Add(TotalesFila);
         }
 
-        // 🧪 Diseño
+        // Diseño
         public InformeSemanalCMAViewModel(string semana, string proyecto, string nombreInicial = "", string especialidadInicial = "")
         {
             Company = new Company { Name = string.IsNullOrWhiteSpace(nombreInicial) ? "Demo Co." : nombreInicial };
@@ -205,9 +196,14 @@ namespace ConcentradoKPI.App.ViewModels
             TotalesFila.ActosSeguros = Editable.ActosSeguros;
             TotalesFila.ActosInseguros = Editable.ActosInseguros;
 
+            // 🔹 Nuevos totales
+            TotalesFila.Corregidas = Editable.Corregidas;
+            TotalesFila.Detectadas = Editable.Detectadas;
+
             TotalesFila.OnPropertyChanged(nameof(ContratistaRow.TotalSemanal));
             TotalesFila.OnPropertyChanged(nameof(ContratistaRow.PorcentajeAvance));
         }
+
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? n = null) =>

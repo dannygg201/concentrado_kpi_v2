@@ -29,8 +29,34 @@ namespace ConcentradoKPI.App.Models
             get => PersonalVigente;
             set => PersonalVigente = value;
         }
-        public PiramideSeguridadDocument? PiramideSeguridad { get; set; }
-        public InformeSemanalCmaDocument? InformeSemanalCma { get; set; }
+        private PiramideSeguridadDocument? _piramideSeguridad;
+        public PiramideSeguridadDocument? PiramideSeguridad
+        {
+            get => _piramideSeguridad;
+            set
+            {
+                if (!Equals(_piramideSeguridad, value))
+                {
+                    _piramideSeguridad = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private InformeSemanalCmaDocument? _informeSemanalCma;
+        public InformeSemanalCmaDocument? InformeSemanalCma
+        {
+            get => _informeSemanalCma;
+            set
+            {
+                if (!Equals(_informeSemanalCma, value))
+                {
+                    _informeSemanalCma = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public PrecursorSifDocument? PrecursorSif { get; set; }
         public IncidentesDocument? Incidentes { get; set; }
 

@@ -12,6 +12,7 @@
         <SolidColorBrush x:Key="Col_Border" Color="#E5E8EC"/>
         <SolidColorBrush x:Key="Col_Muted"  Color="#6B7280"/>
 
+        <!-- Tarjeta base -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource Col_Card}"/>
             <Setter Property="CornerRadius" Value="14"/>
@@ -71,7 +72,7 @@
             </Setter>
         </Style>
 
-        <!-- 🔒 Solo lectura (gris claro) -->
+        <!-- Solo lectura -->
         <Style x:Key="ReadOnlyRoundedTextBox"
                TargetType="TextBox"
                BasedOn="{StaticResource RoundedTextBox}">
@@ -80,11 +81,8 @@
             <Setter Property="IsTabStop" Value="False"/>
             <Setter Property="Cursor" Value="Arrow"/>
             <Setter Property="Background" Value="#F3F4F6"/>
-            <!-- gris claro -->
             <Setter Property="BorderBrush" Value="#E5E7EB"/>
-            <!-- borde tenue -->
             <Setter Property="Foreground" Value="#4B5563"/>
-            <!-- texto gris medio -->
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -99,7 +97,7 @@
             </Setter>
         </Style>
 
-        <!-- ===== Tarjeta (solo 'Especialidad' editable) ===== -->
+        <!-- ===== Tarjeta CONTRATISTA ===== -->
         <DataTemplate x:Key="CardEditableTemplate">
             <Border Style="{StaticResource Card}" HorizontalAlignment="Stretch">
                 <StackPanel>
@@ -111,59 +109,81 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Columna izquierda (solo lectura) -->
+                        <!-- Columna izquierda -->
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Nombre"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding Nombre, Mode=OneWay}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Lista de contratistas"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Téc./Prof. Seguridad"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding TecnicosSeguridad, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}"
+                                     Text="{Binding TecnicosSeguridad, Mode=OneWay}"/>
 
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Colaboradores"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding Colaboradores, Mode=OneWay}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="No. Colaboradores"/>
+                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}"
+                                     Text="{Binding Colaboradores, Mode=OneWay}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Horas trabajadas"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding HorasTrabajadas, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}"
+                                     Text="{Binding HorasTrabajadas, Mode=OneWay}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Incidentes"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding Incidentes, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding Incidentes, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Prec. SIF - Comportamiento"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding PrecursoresSifComportamiento, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding PrecursoresSifComportamiento, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Prec. SIF - Condición"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding PrecursoresSifCondicion, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding PrecursoresSifCondicion, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Condiciones detectadas"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding Detectadas, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Condiciones corregidas"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding Corregidas, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Total semanal (auto)"/>
                             <TextBlock FontWeight="Bold" FontSize="14" Text="{Binding TotalSemanal}"/>
                         </StackPanel>
 
-                        <!-- Columna derecha (solo 'Especialidad' editable) -->
+                        <!-- Columna derecha -->
                         <StackPanel Grid.Column="1" Margin="12,0,0,0">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Especialidad"/>
                             <TextBox Style="{StaticResource RoundedTextBox}"
                                      Text="{Binding Especialidad, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="LTI"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding LTI, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding LTI, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="MDI"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding MDI, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding MDI, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="MTI"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding MTI, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding MTI, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="TRI"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding TRI, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding TRI, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="FAI"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding FAI, Mode=OneWay}"/>
-
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Actos seguros"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding ActosSeguros, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding FAI, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="Actos inseguros"/>
-                            <TextBox Style="{StaticResource ReadOnlyRoundedTextBox}" Text="{Binding ActosInseguros, Mode=OneWay}"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding ActosInseguros, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Actos seguros"/>
+                            <TextBox Style="{StaticResource RoundedTextBox}"
+                                     Text="{Binding ActosSeguros, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
                     </Grid>
 
@@ -212,7 +232,7 @@
                 <StackPanel>
                     <TextBlock Text="Totales" FontWeight="Black" FontSize="16"/>
                     <Separator Margin="0,8,0,10"/>
-                    <UniformGrid Rows="8" Columns="2" Margin="0,0,0,6">
+                    <UniformGrid Rows="10" Columns="2" Margin="0,0,0,6">
                         <TextBlock Text="Téc. Seguridad"/>
                         <TextBlock Text="{Binding TecnicosSeguridad}" FontWeight="Bold" HorizontalAlignment="Right"/>
 
@@ -230,6 +250,12 @@
 
                         <TextBlock Text="Prec. SIF - Cond."/>
                         <TextBlock Text="{Binding PrecursoresSifCondicion}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Cond. detectadas"/>
+                        <TextBlock Text="{Binding Detectadas}" FontWeight="Bold" HorizontalAlignment="Right"/>
+
+                        <TextBlock Text="Cond. corregidas"/>
+                        <TextBlock Text="{Binding Corregidas}" FontWeight="Bold" HorizontalAlignment="Right"/>
 
                         <TextBlock Text="Actos (S / I)"/>
                         <TextBlock FontWeight="Bold" HorizontalAlignment="Right">
@@ -249,7 +275,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <!-- Contenido (sin encabezado propio) -->
+    <!-- Contenido -->
     <Grid Background="#F6F7FB">
         <Grid Margin="12">
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

@@ -77,6 +77,7 @@ namespace ConcentradoKPI.App.Views.Pages
             };
             if (dlg.ShowDialog() == true)
                 ApplyValuesToVm(dlg.Result);
+
             ProjectStorageService.MarkDirty();
         }
 
@@ -101,15 +102,45 @@ namespace ConcentradoKPI.App.Views.Pages
         {
             if (_company is null || _project is null || _week is null) return;
 
+            // 1) Leer lo que el usuario tiene en la vista (base actual)
             var values = GetValuesFromVm();
 
-            // 🔗 SIEMPRE desde Live
+            // 2) Reforzar los 3 de Live
             values.Colaboradores = _week.Live.ColaboradoresTotal;
             values.TecnicosSeguridad = _week.Live.TecnicosSeguridadTotal;
             values.HorasTrabajadas = _week.Live.HorasTrabajadasTotal;
 
             values.AvanceProgramaPct = Math.Clamp(values.AvanceProgramaPct, 0, 100);
 
+            // 3) Si hay InformeSemanal de esta semana, SUMARLO a la pirámide
+            var weekly = _week.InformeSemanalCma;
+            if (weekly != null)
+            {
+                // Actos
+                values.Seguros += weekly.ActosSeguros;
+                values.Inseguros += weekly.ActosInseguros;
+
+                // Precursores (comportamiento) -> Precursores1
+                values.Precursores1 += weekly.PrecursoresSifComportamiento;
+
+                // Condiciones detectadas (desde “condición”)
+                values.Detectadas += weekly.PrecursoresSifCondicion;
+                // Corregidas no viene en el informe semanal (no se modifica aquí)
+
+                // Incidentes sin lesión -> usa el 1er cuadro
+                values.IncidentesSinLesion1 += weekly.Incidentes;
+
+                // Lesiones/atenciones: el informe no trae desglose 1/2/3
+                // Convención: sumamos todo en el nivel 1 de cada categoría
+                values.FAI1 += weekly.FAI;
+                values.MTI1 += weekly.MTI;
+                values.MDI1 += weekly.MDI;
+                values.LTI1 += weekly.LTI;
+
+                // TRI solo es derivado (no se guarda en pirámide), así que lo ignoramos aquí
+            }
+
+            // 4) Persistir documento
             _week.PiramideSeguridad = ToDocument(values, _company.Name, _project.Name, _week.WeekNumber);
         }
 
@@ -159,11 +190,7 @@ namespace ConcentradoKPI.App.Views.Pages
         {
             var vm = DataContext!;
 
-            // ❌ No tocar estos 3: vienen de Live por suscripción
-            // SetIntProp(vm, "Colaboradores", v.Colaboradores);
-            // SetIntProp(vm, "TecnicosSeguridad", v.TecnicosSeguridad);
-            // SetIntProp(vm, "HorasTrabajadas", v.HorasTrabajadas);
-
+            // No tocar Live (se actualiza por suscripción)
             SetIntProp(vm, "Companias", v.Companias);
             SetIntProp(vm, "WithoutLTIs", v.WithoutLTIs);
             SetStringProp(vm, "LastRecord", v.LastRecord ?? "");
@@ -276,7 +303,7 @@ namespace ConcentradoKPI.App.Views.Pages
             };
         }
 
-        // Reflection helpers (igual)
+        // === Reflection helpers (igual que tenías) ===
         private static int CoerceInt(object? val)
         {
             if (val == null) return 0;
@@ -292,8 +319,8 @@ namespace ConcentradoKPI.App.Views.Pages
             if (t == typeof(string))
             {
                 var s = (string)val;
-                if (int.TryParse(s, System.Globalization.NumberStyles.Any, CultureInfo.InvariantCulture, out var i)) return i;
-                if (double.TryParse(s, System.Globalization.NumberStyles.Any, CultureInfo.InvariantCulture, out var d)) return (int)Math.Round(d);
+                if (int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var i)) return i;
+                if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d)) return (int)Math.Round(d);
             }
             try { return Convert.ToInt32(val, CultureInfo.InvariantCulture); } catch { return 0; }
         }
