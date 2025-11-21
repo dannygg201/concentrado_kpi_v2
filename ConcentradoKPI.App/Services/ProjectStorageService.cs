@@ -31,8 +31,7 @@ namespace ConcentradoKPI.App.Services
         // Flag manual para marcar sucio aunque aún no hayamos reflejado cambios en CurrentData
         private static bool _manualDirty;
 
-        public static bool IsDirty =>
-            (CurrentData != null && _dirty.IsDirty(CurrentData)) || _manualDirty;
+        public static bool IsDirty => _manualDirty;
 
         // Permite a las VMs marcar “hay cambios”
         public static void MarkDirty() => _manualDirty = true;

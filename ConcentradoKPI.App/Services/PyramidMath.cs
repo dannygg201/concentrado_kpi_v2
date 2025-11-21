@@ -4,9 +4,9 @@ using ConcentradoKPI.App.Models;
 namespace ConcentradoKPI.App.Services
 {
     /// <summary>
-    /// Reglas de mapeo entre Pirámide (base) y el Informe Semanal CMA (ISCMA).
-    /// - Effective = Base + ISCMA
-    /// - Base = Effective - ISCMA
+    /// Reglas de mapeo entre Pirámide (base) y el Informe Semanal CMC (ISCMC).
+    /// - Effective = Base + ISCMC
+    /// - Base = Effective - ISCMC
     /// Nota: NO sumamos Colaboradores / Técnicos / Horas (vienen de Live).
     /// </summary>
     public static class PyramidMath

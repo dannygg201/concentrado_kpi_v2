@@ -30,6 +30,7 @@ namespace ConcentradoKPI.App.Views.Pages
             }
 
             Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
         }
 
         public IncidentesView(Company c, Project p, WeekData w) : this()
@@ -54,6 +55,10 @@ namespace ConcentradoKPI.App.Views.Pages
 
             HydrateFromWeek();
             _week?.Live?.NotifyAll();
+        }
+        private void OnUnloaded(object? sender, RoutedEventArgs e)
+        {
+            SyncIntoWeek();
         }
 
         // ======= Shell llamará esto antes de persistir =======
@@ -120,7 +125,7 @@ namespace ConcentradoKPI.App.Views.Pages
                 vm.Registros[i].No = i + 1;
 
             vm.Seleccionado = null;
-            vm.Form = new IncidentRecord();
+            vm.Form = new IncidentRecord { UEN = "CMC" };
         }
     }
 }

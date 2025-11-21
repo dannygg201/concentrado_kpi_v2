@@ -24,9 +24,25 @@ namespace ConcentradoKPI.App.Views.Controls
         public static readonly DependencyProperty CommandTargetProperty =
             DependencyProperty.Register(nameof(CommandTarget), typeof(IInputElement), typeof(TopBar), new PropertyMetadata(null));
 
-        private void Salir_Click(object sender, RoutedEventArgs e)
+        // 🔴 Botón "Salir"
+        private void ExitButton_Click(object sender, RoutedEventArgs e)
         {
-            Window.GetWindow(this)?.Close();
+            var window = Window.GetWindow(this);
+            if (window == null)
+                return;
+
+            // Si es la ventana principal -> cierra la app
+            if (window == Application.Current.MainWindow)
+            {
+                Application.Current.Shutdown();
+            }
+            else
+            {
+                // Si es un ShellWindow u otra ventana hija -> solo ciérrala
+                window.Close();
+            }
+
+            e.Handled = true;
         }
     }
 }

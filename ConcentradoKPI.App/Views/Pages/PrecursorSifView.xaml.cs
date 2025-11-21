@@ -30,6 +30,7 @@ namespace ConcentradoKPI.App.Views.Pages
             }
 
             Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
         }
 
         public PrecursorSifView(Company c, Project p, WeekData w) : this()
@@ -58,6 +59,11 @@ namespace ConcentradoKPI.App.Views.Pages
             _week?.Live?.NotifyAll();
         }
 
+        private void OnUnloaded(object? sender, RoutedEventArgs e)
+        {
+            // No guarda en disco, solo VM -> WeekData
+            SyncIntoWeek();
+        }
         private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // Puedes dejarlo vacío o agregar lógica si lo usas.
@@ -130,7 +136,7 @@ namespace ConcentradoKPI.App.Views.Pages
 
             vm.Seleccionado = null;
             if (vm.Form is not null)
-                vm.Form.CopyFrom(new PrecursorSifRecord());
+                vm.Form = new PrecursorSifRecord { UEN = "CMC" };
         }
     }
 }

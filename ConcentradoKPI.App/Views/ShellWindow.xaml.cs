@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using ConcentradoKPI.App.Models;
@@ -25,7 +26,7 @@ namespace ConcentradoKPI.App.Views
         {
             InitializeComponent();
 
-            // El TopBar enviará ApplicationCommands.Save a esta ventana
+            // El TopBar enviará ApplicationCommands.Save / Close a esta ventana
             TopBarControl.CommandTarget = this;
 
             _company = c; _project = p; _week = w; _hostVm = hostVm;
@@ -43,12 +44,21 @@ namespace ConcentradoKPI.App.Views
             _shellVm.CurrentView = AppView.PersonalVigente;
             LoadView(_shellVm.CurrentView);
 
-            // Confirmar guardado al cerrar si hay cambios
+            // 5) Confirmar guardado al cerrar si hay cambios (X de la ventana)
             this.Closing += OnShellClosing_ConfirmSave;
+
+            // 6) Comando de Cerrar (para botón “Salir” del TopBar)
+            CommandBindings.Add(new CommandBinding(
+                ApplicationCommands.Close,
+                Close_Executed,
+                Close_CanExecute
+            ));
         }
 
         private void LoadView(AppView v)
         {
+            if (BodyHost.Content is ISyncToWeek syncPrev)
+                syncPrev.SyncIntoWeek();
             // Liberar vista/VM anterior si implementa IDisposable
             if (BodyHost.Content is FrameworkElement oldView && oldView.DataContext is IDisposable oldVm)
                 oldVm.Dispose();
@@ -78,7 +88,7 @@ namespace ConcentradoKPI.App.Views
                         var vm = new InformeSemanalCMAViewModel(_company, _project, _week);
                         var view = new InformeSemanalCmaView { DataContext = vm };
                         BodyHost.Content = view;
-                        TopBarControl.Title = "Informe semanal CMA";
+                        TopBarControl.Title = "Informe semanal CMC";
                         CommandManager.InvalidateRequerySuggested();
                         break;
                     }
@@ -103,7 +113,8 @@ namespace ConcentradoKPI.App.Views
             }
         }
 
-        // Habilitación del botón Guardar (TopBar)
+        // ====== Guardar (TopBar - ApplicationCommands.Save) ======
+
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             // Habilita si existe un proyecto cargado (y opcionalmente si hay cambios)
@@ -111,7 +122,109 @@ namespace ConcentradoKPI.App.Views
             // e.CanExecute = ProjectStorageService.CurrentData != null && ProjectStorageService.IsDirty;
         }
 
-        // Sin depender de MainViewModel.AppData: reflejamos _week en el AppData actual
+        private async void Save_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            // 1) UI -> WeekData (si la vista lo implementa)
+            if (BodyHost.Content is ISyncToWeek sync)
+                sync.SyncIntoWeek();
+
+            // 2) Reflejar esos cambios en el AppData actual
+            MirrorWeekIntoCurrentRoot();
+
+            // 3) Persistir
+            try
+            {
+                var ok = await ProjectStorageService.SaveOrPromptAsync(this);
+                if (!ok) return; // usuario canceló o no se guardó
+
+                // 4) ✅ Mensaje de éxito SOLO si se guardó correctamente
+                MessageBox.Show(
+                    this,
+                    "Guardado correctamente.",
+                    "Éxito",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                // cancelado: no mostramos nada
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"No se pudo guardar.\n{ex.Message}",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+        // ====== Cerrar (botón Salir del TopBar) ======
+
+        private void Close_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            // Siempre dejamos cerrar; la confirmación se hace dentro
+            e.CanExecute = true;
+        }
+
+        private void Close_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            this.Close(); // 👉 esto dispara el evento Closing y ahí se muestra el MessageBox
+        }
+
+        // ====== Lógica compartida para confirmar guardado al cerrar ======
+
+        private async Task HandleClosingConfirmAsync(CancelEventArgs e)
+        {
+            if (!ProjectStorageService.IsDirty)
+                return; // nada que preguntar
+
+            var r = MessageBox.Show(this,
+                "Hay cambios sin guardar.\n\n¿Deseas guardarlos antes de salir?",
+                "Cambios sin guardar",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
+
+            if (r == MessageBoxResult.Cancel)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            if (r == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    // Volcar posibles cambios pendientes de la vista actual
+                    if (BodyHost.Content is ISyncToWeek sync)
+                        sync.SyncIntoWeek();
+
+                    // Reflejar WeekData -> AppData root
+                    MirrorWeekIntoCurrentRoot();
+
+                    var ok = await ProjectStorageService.SaveOrPromptAsync(this);
+                    if (!ok) e.Cancel = true; // canceló el diálogo de guardar
+                }
+                catch (OperationCanceledException)
+                {
+                    e.Cancel = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, $"No se pudo guardar.\n{ex.Message}",
+                                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    e.Cancel = true;
+                }
+            }
+            // Si r == No → no guardamos y dejamos cerrar
+        }
+
+        // Llamado automáticamente al cerrar por la X de la ventana
+        private async void OnShellClosing_ConfirmSave(object? sender, CancelEventArgs e)
+        {
+            await HandleClosingConfirmAsync(e);
+        }
+
+        // Reflejar WeekData en el AppData actual
         private void MirrorWeekIntoCurrentRoot()
         {
             var app = ProjectStorageService.CurrentData;
@@ -126,72 +239,18 @@ namespace ConcentradoKPI.App.Views
             var wk = proj.Weeks.FirstOrDefault(x => x.WeekNumber == _week.WeekNumber);
             if (wk == null) return;
 
-            // Copiamos los documentos que pudo haber modificado el Shell
-            // (agrega aquí otros que uses dentro de WeekData)
+            // 🔹 Lo que ya tenías
             if (_week.PersonalVigente != null) wk.PersonalVigente = _week.PersonalVigente;
             if (_week.PrecursorSif != null) wk.PrecursorSif = _week.PrecursorSif;
             if (_week.Incidentes != null) wk.Incidentes = _week.Incidentes;
 
-            // Si hay más propiedades que modifiques en otros módulos, repítelo aquí.
+            // 🔹 NUEVO: Informe Semanal + Pirámide
+            if (_week.InformeSemanalCma != null) wk.InformeSemanalCma = _week.InformeSemanalCma;
+            if (_week.PiramideSeguridad != null) wk.PiramideSeguridad = _week.PiramideSeguridad;
         }
 
-        // Ejecución del Guardar
-        private async void Save_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            // 1) UI -> WeekData (si la vista lo implementa)
-            if (BodyHost.Content is ISyncToWeek sync)
-                sync.SyncIntoWeek();
 
-            // 2) Reflejar esos cambios en el AppData actual (aunque sean instancias distintas)
-            MirrorWeekIntoCurrentRoot();
 
-            // 3) Persistir
-            try
-            {
-                var ok = await ProjectStorageService.SaveOrPromptAsync(this);
-                if (!ok) return; // usuario canceló “Guardar como…”
-                // (Opcional) toast/confirmación
-                // MessageBox.Show(this, "Guardado correctamente.", "Guardar", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (OperationCanceledException) { /* cancelado por el usuario */ }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"No se pudo guardar.\n{ex.Message}",
-                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        // Confirmar guardado al cerrar
-        private async void OnShellClosing_ConfirmSave(object? sender, CancelEventArgs e)
-        {
-            if (!ProjectStorageService.IsDirty) return;
-
-            var r = MessageBox.Show(this,
-                "Hay cambios sin guardar.\n\n¿Deseas guardarlos antes de salir?",
-                "Cambios sin guardar",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Warning);
-
-            if (r == MessageBoxResult.Cancel) { e.Cancel = true; return; }
-            if (r == MessageBoxResult.Yes)
-            {
-                try
-                {
-                    // Por si había cambios sin volcar
-                    if (BodyHost.Content is ISyncToWeek sync)
-                        sync.SyncIntoWeek();
-
-                    MirrorWeekIntoCurrentRoot();
-
-                    var ok = await ProjectStorageService.SaveOrPromptAsync(this);
-                    if (!ok) e.Cancel = true; // canceló diálogo
-                }
-                catch (OperationCanceledException)
-                {
-                    e.Cancel = true;
-                }
-            }
-        }
 
         protected override void OnClosed(EventArgs e)
         {
@@ -201,5 +260,6 @@ namespace ConcentradoKPI.App.Views
 
             base.OnClosed(e);
         }
+
     }
 }

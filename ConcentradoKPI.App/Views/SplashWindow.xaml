@@ -27,7 +27,7 @@
                          VerticalAlignment="Center" Margin="40,0"/>
 
             <!-- Footer -->
-            <TextBlock Grid.Row="2" Text="©2025 TheAmazingDannyGlez" Opacity="0.6"
+            <TextBlock Grid.Row="2" Text="©2025 SafetyProjects" Opacity="0.6"
                        HorizontalAlignment="Center" Margin="0,16,0,0"/>
         </Grid>
     </Border>

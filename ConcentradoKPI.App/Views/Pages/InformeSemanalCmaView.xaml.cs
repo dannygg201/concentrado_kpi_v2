@@ -1,15 +1,13 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using ConcentradoKPI.App.Models;
 using ConcentradoKPI.App.Services;
 using ConcentradoKPI.App.ViewModels;
 using ConcentradoKPI.App.Views.Abstractions;
 
-namespace ConcentradoKPI.App.Views
+namespace ConcentradoKPI.App.Views.Pages
 {
     public partial class InformeSemanalCmaView : UserControl, ISyncToWeek
     {
@@ -17,204 +15,233 @@ namespace ConcentradoKPI.App.Views
         private Project? _project;
         private WeekData? _week;
 
-        private static readonly Regex _onlyDigits = new(@"^\d+$");
-
-        // ===== ctor usado por el diseñador / XAML =====
         public InformeSemanalCmaView()
         {
             InitializeComponent();
 
+            // 🔹 Cuando cambie el VM, me guardo Company/Project/Week
+            DataContextChanged += OnDataContextChanged;
+
             if (DesignerProperties.GetIsInDesignMode(this))
             {
+                var wLocal = new WeekData();
                 DataContext = new InformeSemanalCMAViewModel(
-                    semana: "1",
-                    proyecto: "Proyecto Demo",
-                    nombreInicial: "Contratista Demo",
-                    especialidadInicial: "Otros");
+                    new Company { Name = "Demo Co." },
+                    new Project { Name = "Proyecto Demo" },
+                    wLocal
+                );
             }
 
-            Loaded += OnLoaded;
+            // Por si se descarga la vista (cambiar de pestaña, etc.)
+            Unloaded += (_, __) => SyncWeekAndPyramid();
         }
 
-        // ===== ctor real con contexto =====
-        public InformeSemanalCmaView(Company c, Project p, WeekData w) : this()
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is InformeSemanalCMAViewModel vm)
+            {
+                _company = vm.Company;
+                _project = vm.Project;
+                _week = vm.Week;
+            }
+        }
+
+        // Opcional (si algún día quieres usar InitContext de otra forma)
+        public void InitContext(Company c, Project p, WeekData w)
         {
             _company = c;
             _project = p;
             _week = w;
 
-            DataContext = new InformeSemanalCMAViewModel(
-                c, p, w,
-                nombreInicial: c?.Name ?? string.Empty,
-                especialidadInicial: string.Empty);
+            if (DataContext is not InformeSemanalCMAViewModel)
+                DataContext = new InformeSemanalCMAViewModel(c, p, w);
         }
 
-        private void OnLoaded(object? sender, RoutedEventArgs e)
+        public void FlushToWeek() => SyncWeekAndPyramid();
+        public void SyncIntoWeek() => SyncWeekAndPyramid();
+
+        private void SyncWeekAndPyramid()
         {
-            if (DataContext is InformeSemanalCMAViewModel vm)
-            {
-                // Si no vinieron por ctor, los tomamos del VM
-                if (_company == null && _project == null && _week == null)
-                {
-                    _company = vm.Company;
-                    _project = vm.Project;
-                    _week = vm.Week;
-                }
-
-                vm.Editable.PropertyChanged -= Editable_PropertyChanged;
-                vm.Editable.PropertyChanged += Editable_PropertyChanged;
-            }
-
-            // Dispara Live para rellenar técnicos/colaboradores/horas
-            _week?.Live?.NotifyAll();
-        }
-
-        private void Editable_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            ProjectStorageService.MarkDirty();
-        }
-
-        // ===== Validación numérica opcional =====
-        private void NumericOnly(object sender, TextCompositionEventArgs e)
-            => e.Handled = !_onlyDigits.IsMatch(e.Text);
-
-        private void NumericPaste(object sender, DataObjectPastingEventArgs e)
-        {
-            if (e.DataObject?.GetDataPresent(DataFormats.Text) == true)
-            {
-                var txt = e.DataObject.GetData(DataFormats.Text)?.ToString() ?? "";
-                if (!_onlyDigits.IsMatch(txt)) e.CancelCommand();
-            }
-            else e.CancelCommand();
-        }
-
-        // ======= ISyncToWeek =======
-        public void FlushToWeek() => SyncIntoWeek();
-
-        public void SyncIntoWeek()
-        {
+            if (_company == null || _project == null || _week == null) return;
             if (DataContext is not InformeSemanalCMAViewModel vm) return;
-            if (_company is null || _project is null || _week is null) return;
 
-            var e = vm.Editable;
-
-            // 👉 informe semanal ANTERIOR (si lo había)
+            // === 1) Documento semanal viejo / nuevo ===
             var oldWeekly = _week.InformeSemanalCma;
 
-            // 👉 informe semanal NUEVO (lo que ves en pantalla)
-            var newWeekly = new InformeSemanalCmaDocument
-            {
-                Company = _company.Name,
-                Project = _project.Name,
-                WeekNumber = _week.WeekNumber,
+            var newWeekly = BuildWeeklyFromVm(
+                vm.Editable,
+                _company.Name,
+                _project.Name,
+                _week.WeekNumber
+            );
 
-                Nombre = e.Nombre ?? string.Empty,
-                Especialidad = e.Especialidad ?? string.Empty,
+            bool weeklyChanged = !WeeklyEquals(oldWeekly, newWeekly);
 
-                // Estos 3 vienen de Live pero se guardan como están
-                TecnicosSeguridad = e.TecnicosSeguridad,
-                Colaboradores = e.Colaboradores,
-                HorasTrabajadas = e.HorasTrabajadas,
+            // === 2) Pirámide vieja / nueva ===
+            PiramideSeguridadDocument? oldPiramDoc =
+                _week.PiramideSeguridad as PiramideSeguridadDocument;
 
-                LTI = e.LTI,
-                MDI = e.MDI,
-                MTI = e.MTI,
-                TRI = e.TRI,
-                FAI = e.FAI,
+            PiramideValues pir;
+            if (oldPiramDoc != null)
+                pir = PiramideSeguridadView.FromDocument(oldPiramDoc);
+            else
+                pir = new PiramideValues();
 
-                Incidentes = e.Incidentes,
+            // Espejo de lo que diga el informe semanal
+            pir.Seguros = newWeekly.ActosSeguros;
+            pir.Inseguros = newWeekly.ActosInseguros;
+            pir.Precursores1 = newWeekly.PrecursoresSifComportamiento;
+            pir.Precursores2 = newWeekly.PrecursoresSifCondicion;
+            pir.IncidentesSinLesion1 = newWeekly.Incidentes;
+            pir.FAI1 = newWeekly.FAI;
+            pir.MTI1 = newWeekly.MTI;
+            pir.MDI1 = newWeekly.MDI;
+            pir.LTI1 = newWeekly.LTI;
+            pir.Detectadas = newWeekly.Detectadas;
+            pir.Corregidas = newWeekly.Corregidas;
 
-                PrecursoresSifComportamiento = e.PrecursoresSifComportamiento,
-                PrecursoresSifCondicion = e.PrecursoresSifCondicion,
+            var newPiramDoc = PiramideSeguridadView.ToDocument(
+                pir,
+                _company.Name,
+                _project.Name,
+                _week.WeekNumber
+            );
 
-                ActosSeguros = e.ActosSeguros,
-                ActosInseguros = e.ActosInseguros,
+            bool pirChanged = !PiramideEquals(oldPiramDoc, newPiramDoc);
 
-                // Campos nuevos del Excel
-                Corregidas = e.Corregidas,
-                Detectadas = e.Detectadas,
+            // === 3) Si NO cambió nada, no ensuciamos el proyecto ===
+            if (!weeklyChanged && !pirChanged)
+                return;
 
-                TotalSemanal = e.TotalSemanal,
-                PorcentajeAvance = e.PorcentajeAvance,
-
-                SavedUtc = DateTime.UtcNow
-            };
-
-            // 1) Guardar Informe Semanal de esta semana
+            // === 4) Aplicar cambios reales y marcar dirty ===
             _week.InformeSemanalCma = newWeekly;
-
-            // 2) Recordar última especialidad
-            if (!string.IsNullOrWhiteSpace(e.Especialidad))
-            {
-                LastEspecialidadStore.Set(_company.Name, _project.Name, e.Especialidad);
-            }
-
-            // 3) Aplicar la suma n1 + n2 a la pirámide
-            if (_week.PiramideSeguridad is PiramideSeguridadDocument pirDoc)
-            {
-                ApplyWeeklyDeltaToPiramide(pirDoc, oldWeekly, newWeekly);
-            }
+            _week.PiramideSeguridad = newPiramDoc;
 
             ProjectStorageService.MarkDirty();
         }
 
-        // ===== Helpers para sumar sin duplicar =====
-        private static int ApplyDelta(int current, int? oldVal, int newVal)
-            => current - (oldVal ?? 0) + newVal;
+        private static InformeSemanalCmaDocument BuildWeeklyFromVm(
+            ContratistaRow row,
+            string company,
+            string project,
+            int weekNumber)
+        {
+            return new InformeSemanalCmaDocument
+            {
+                Company = company,
+                Project = project,
+                WeekNumber = weekNumber,
+
+                Nombre = row.Nombre,
+                Especialidad = row.Especialidad,
+                Colaboradores = row.Colaboradores,
+                TecnicosSeguridad = row.TecnicosSeguridad,
+                HorasTrabajadas = row.HorasTrabajadas,
+
+                LTI = row.LTI,
+                MDI = row.MDI,
+                MTI = row.MTI,
+                TRI = row.TRI,
+                FAI = row.FAI,
+
+                Incidentes = row.Incidentes,
+                PrecursoresSifComportamiento = row.PrecursoresSifComportamiento,
+                PrecursoresSifCondicion = row.PrecursoresSifCondicion,
+                ActosSeguros = row.ActosSeguros,
+                ActosInseguros = row.ActosInseguros,
+
+                Corregidas = row.Corregidas,
+                Detectadas = row.Detectadas,
+
+                TotalSemanal = row.TotalSemanal,
+                PorcentajeAvance = row.PorcentajeAvance,
+
+                SchemaVersion = 2,
+                SavedUtc = DateTime.UtcNow
+            };
+        }
+
+        // ===== Helpers de comparación =====
+
+        private static bool WeeklyEquals(InformeSemanalCmaDocument? a, InformeSemanalCmaDocument b)
+        {
+            if (a == null) return false;
+
+            return
+                a.Company == b.Company &&
+                a.Project == b.Project &&
+                a.WeekNumber == b.WeekNumber &&
+
+                a.Nombre == b.Nombre &&
+                a.Especialidad == b.Especialidad &&
+
+                a.TecnicosSeguridad == b.TecnicosSeguridad &&
+                a.Colaboradores == b.Colaboradores &&
+                a.HorasTrabajadas == b.HorasTrabajadas &&
+
+                a.LTI == b.LTI &&
+                a.MDI == b.MDI &&
+                a.MTI == b.MTI &&
+                a.TRI == b.TRI &&
+                a.FAI == b.FAI &&
+
+                a.Incidentes == b.Incidentes &&
+                a.PrecursoresSifComportamiento == b.PrecursoresSifComportamiento &&
+                a.PrecursoresSifCondicion == b.PrecursoresSifCondicion &&
+
+                a.ActosSeguros == b.ActosSeguros &&
+                a.ActosInseguros == b.ActosInseguros &&
+
+                a.Corregidas == b.Corregidas &&
+                a.Detectadas == b.Detectadas;
+            // Ignoramos TotalSemanal, PorcentajeAvance, SavedUtc, SchemaVersion
+        }
+
+        private static bool PiramideEquals(PiramideSeguridadDocument? a, PiramideSeguridadDocument b)
+        {
+            if (a == null) return false;
+
+            return
+                a.Company == b.Company &&
+                a.Project == b.Project &&
+                a.WeekNumber == b.WeekNumber &&
+
+                a.Seguros == b.Seguros &&
+                a.Inseguros == b.Inseguros &&
+                a.Precursores1 == b.Precursores1 &&
+                a.Precursores2 == b.Precursores2 &&
+                a.IncidentesSinLesion1 == b.IncidentesSinLesion1 &&
+                a.FAI1 == b.FAI1 &&
+                a.MTI1 == b.MTI1 &&
+                a.MDI1 == b.MDI1 &&
+                a.LTI1 == b.LTI1 &&
+                a.Detectadas == b.Detectadas &&
+                a.Corregidas == b.Corregidas;
+            // El resto de campos de la pirámide se dejan fuera para no forzar cambios
+        }
 
         /// <summary>
-        /// pirámideNueva = pirámideActual - oldWeekly + newWeekly
-        /// => siempre queda base(n1) + newWeekly(n2)
+        /// Aplica (suma o resta) los valores del informe semanal a la pirámide.
+        /// sign = +1 para sumar, -1 para quitar.
+        /// (Actualmente no la usamos, pero la dejo por si quieres volver al modo suma/resta)
         /// </summary>
-        private static void ApplyWeeklyDeltaToPiramide(
-            PiramideSeguridadDocument pir,
-            InformeSemanalCmaDocument? oldWeekly,
-            InformeSemanalCmaDocument newWeekly)
+        private static void ApplyWeekly(ref PiramideValues p, InformeSemanalCmaDocument d, int sign)
         {
-            // LTI / MDI / MTI / FAI -> usamos nivel 1
-            pir.FAI1 = ApplyDelta(pir.FAI1, oldWeekly?.FAI, newWeekly.FAI);
-            pir.MTI1 = ApplyDelta(pir.MTI1, oldWeekly?.MTI, newWeekly.MTI);
-            pir.MDI1 = ApplyDelta(pir.MDI1, oldWeekly?.MDI, newWeekly.MDI);
-            pir.LTI1 = ApplyDelta(pir.LTI1, oldWeekly?.LTI, newWeekly.LTI);
+            p.Seguros += sign * d.ActosSeguros;
+            p.Inseguros += sign * d.ActosInseguros;
 
-            // Incidentes sin lesión
-            pir.IncidentesSinLesion1 = ApplyDelta(
-                pir.IncidentesSinLesion1,
-                oldWeekly?.Incidentes,
-                newWeekly.Incidentes);
+            p.Precursores1 += sign * d.PrecursoresSifComportamiento;
+            p.Precursores2 += sign * d.PrecursoresSifCondicion;
 
-            // Precursores SIF
-            pir.Precursores1 = ApplyDelta(
-                pir.Precursores1,
-                oldWeekly?.PrecursoresSifComportamiento,
-                newWeekly.PrecursoresSifComportamiento);
+            p.IncidentesSinLesion1 += sign * d.Incidentes;
 
-            pir.Precursores2 = ApplyDelta(
-                pir.Precursores2,
-                oldWeekly?.PrecursoresSifCondicion,
-                newWeekly.PrecursoresSifCondicion);
+            p.FAI1 += sign * d.FAI;
+            p.MTI1 += sign * d.MTI;
+            p.MDI1 += sign * d.MDI;
+            p.LTI1 += sign * d.LTI;
 
-            // Actos
-            pir.Seguros = ApplyDelta(
-                pir.Seguros,
-                oldWeekly?.ActosSeguros,
-                newWeekly.ActosSeguros);
-
-            pir.Inseguros = ApplyDelta(
-                pir.Inseguros,
-                oldWeekly?.ActosInseguros,
-                newWeekly.ActosInseguros);
-
-            // Condiciones (campos del Excel)
-            pir.Corregidas = ApplyDelta(
-                pir.Corregidas,
-                oldWeekly?.Corregidas,
-                newWeekly.Corregidas);
-
-            pir.Detectadas = ApplyDelta(
-                pir.Detectadas,
-                oldWeekly?.Detectadas,
-                newWeekly.Detectadas);
+            p.Detectadas += sign * d.Detectadas;
+            p.Corregidas += sign * d.Corregidas;
         }
     }
 }

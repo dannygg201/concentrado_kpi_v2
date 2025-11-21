@@ -70,7 +70,7 @@
                                             Converter={StaticResource EqDisabled},
                                             ConverterParameter={x:Static models:AppView.PiramideSeguridad}}"/>
 
-                <Button Style="{StaticResource NavBtn}" Content="Informe Semanal CMA"
+                <Button Style="{StaticResource NavBtn}" Content="Informe Semanal CMC"
                         Command="{Binding NavigateCommand}"
                         CommandParameter="{x:Static models:AppView.InformeSemanalCma}"
                         IsEnabled="{Binding CurrentView,

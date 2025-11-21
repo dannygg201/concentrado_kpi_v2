@@ -144,7 +144,9 @@
             <Image Source="{StaticResource LogoDerecha}" Height="{StaticResource LogoPx}" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,10,0"/>
             <Rectangle Width="1" Height="28" Fill="{StaticResource Col.White.10}" Margin="0,0,8,0" VerticalAlignment="Center"/>
 
-            <Button Margin="4" Command="ApplicationCommands.Save" CommandTarget="{Binding ElementName=Root, Path=CommandTarget}">
+            <Button Margin="4"
+            Command="ApplicationCommands.Save"
+            CommandTarget="{Binding ElementName=Root, Path=CommandTarget}">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource TopBarGhostButton}">
                         <Setter Property="ContentTemplate" Value="{StaticResource BtnContent.Save}"/>
@@ -152,13 +154,15 @@
                 </Button.Style>
             </Button>
 
-            <Button Margin="4" Click="Salir_Click">
+            <Button Margin="4"
+        Click="ExitButton_Click">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource TopBarGhostButton}">
                         <Setter Property="ContentTemplate" Value="{StaticResource BtnContent.Exit}"/>
                     </Style>
                 </Button.Style>
             </Button>
+
         </StackPanel>
     </Grid>
 </UserControl>

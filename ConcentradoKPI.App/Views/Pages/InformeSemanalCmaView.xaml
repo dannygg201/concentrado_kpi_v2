@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="ConcentradoKPI.App.Views.InformeSemanalCmaView"
+﻿<UserControl x:Class="ConcentradoKPI.App.Views.Pages.InformeSemanalCmaView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ConcentradoKPI.App.ViewModels"

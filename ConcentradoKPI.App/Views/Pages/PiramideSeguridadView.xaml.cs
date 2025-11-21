@@ -43,6 +43,7 @@ namespace ConcentradoKPI.App.Views.Pages
                 _shell.CurrentView = AppView.PiramideSeguridad;
                 _shell.NavigateRequested += OnNavigateRequested;
             }
+            Unloaded += (_, __) => SyncWeekFromVm();
         }
 
         public void InitContext(Company c, Project p, WeekData w)
@@ -105,44 +106,23 @@ namespace ConcentradoKPI.App.Views.Pages
             // 1) Leer lo que el usuario tiene en la vista (base actual)
             var values = GetValuesFromVm();
 
-            // 2) Reforzar los 3 de Live
+            // 2) Reforzar los 3 de Live (estos SIEMPRE vienen de Personal Vigente)
             values.Colaboradores = _week.Live.ColaboradoresTotal;
             values.TecnicosSeguridad = _week.Live.TecnicosSeguridadTotal;
             values.HorasTrabajadas = _week.Live.HorasTrabajadasTotal;
 
+            // Asegurar % Avance en rango
             values.AvanceProgramaPct = Math.Clamp(values.AvanceProgramaPct, 0, 100);
 
-            // 3) Si hay InformeSemanal de esta semana, SUMARLO a la pirámide
-            var weekly = _week.InformeSemanalCma;
-            if (weekly != null)
-            {
-                // Actos
-                values.Seguros += weekly.ActosSeguros;
-                values.Inseguros += weekly.ActosInseguros;
+            // ❌ IMPORTANTE:
+            // YA NO sumar aquí el InformeSemanalCma.
+            // El acoplamiento n1 + n2 ya lo hace InformeSemanalCmaView.SyncIntoWeek,
+            // con la lógica: pirámide = pirámideActual - oldWeekly + newWeekly
 
-                // Precursores (comportamiento) -> Precursores1
-                values.Precursores1 += weekly.PrecursoresSifComportamiento;
-
-                // Condiciones detectadas (desde “condición”)
-                values.Detectadas += weekly.PrecursoresSifCondicion;
-                // Corregidas no viene en el informe semanal (no se modifica aquí)
-
-                // Incidentes sin lesión -> usa el 1er cuadro
-                values.IncidentesSinLesion1 += weekly.Incidentes;
-
-                // Lesiones/atenciones: el informe no trae desglose 1/2/3
-                // Convención: sumamos todo en el nivel 1 de cada categoría
-                values.FAI1 += weekly.FAI;
-                values.MTI1 += weekly.MTI;
-                values.MDI1 += weekly.MDI;
-                values.LTI1 += weekly.LTI;
-
-                // TRI solo es derivado (no se guarda en pirámide), así que lo ignoramos aquí
-            }
-
-            // 4) Persistir documento
+            // 3) Persistir documento tal cual está en la vista
             _week.PiramideSeguridad = ToDocument(values, _company.Name, _project.Name, _week.WeekNumber);
         }
+
 
         // ====== VM <-> DTO ======
         private PiramideValues GetValuesFromVm()

@@ -5,9 +5,15 @@
         Title="Concentrado KPI" Width="1200" Height="750"
         WindowStartupLocation="CenterOwner" Background="#F7F9FC">
     <Window.CommandBindings>
+        <!-- Guardar (ya lo tienes) -->
         <CommandBinding Command="ApplicationCommands.Save"
-                        Executed="Save_Executed"
-                        CanExecute="Save_CanExecute"/>
+                        CanExecute="Save_CanExecute"
+                        Executed="Save_Executed"/>
+
+        <!-- 🔴 NUEVO: Cerrar -->
+        <CommandBinding Command="ApplicationCommands.Close"
+                        CanExecute="Close_CanExecute"
+                        Executed="Close_Executed"/>
     </Window.CommandBindings>
     <Window.InputBindings>
         <KeyBinding Command="ApplicationCommands.Save" Modifiers="Control" Key="S"/>

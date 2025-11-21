@@ -13,7 +13,7 @@ namespace ConcentradoKPI.App.Models
             set { if (_no != value) { _no = value; OnPropertyChanged(); } }
         }
 
-        private string _uen = "CMA";
+        private string _uen = "CMC";
         public string UEN
         {
             get => _uen;

@@ -260,6 +260,7 @@ namespace ConcentradoKPI.App.ViewModels
             ClearForm();
             SelectedPerson = null;
             RefreshCommands();
+            ProjectStorageService.MarkDirty();
         }
 
         private void ApplyEdit()
@@ -289,6 +290,7 @@ namespace ConcentradoKPI.App.ViewModels
             ClearForm();
             SelectedPerson = null;
             RefreshCommands();
+            ProjectStorageService.MarkDirty();
         }
 
         private void DeleteSelected()
@@ -302,6 +304,7 @@ namespace ConcentradoKPI.App.ViewModels
             ClearForm();
             SelectedPerson = null;
             RefreshCommands();
+            ProjectStorageService.MarkDirty();
         }
 
         private void ClearForm()
