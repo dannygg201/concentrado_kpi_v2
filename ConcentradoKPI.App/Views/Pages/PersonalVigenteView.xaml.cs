@@ -47,6 +47,7 @@ namespace ConcentradoKPI.App.Views.Pages
             LiveSyncService.Recalc(vm.Week, vm.Week.PersonalVigenteDocument);
         }
 
+
         private readonly Company _company;
         private readonly Project _project;
         private readonly WeekData _week;
@@ -97,7 +98,6 @@ namespace ConcentradoKPI.App.Views.Pages
                 );
             };
 
-            HydrateFromWeek(); // si ya existe documento, precarga
         }
 
         // ---------------------------------------------------------
@@ -191,26 +191,30 @@ namespace ConcentradoKPI.App.Views.Pages
         {
             try
             {
-                // 1) VM -> Week.PersonalVigente
-                SyncWeekFromVm();
+                if (DataContext is PersonalVigenteViewModel vm)
+                {
+                    // 1) Empuja los datos al Week + recalcula Live + lanza evento
+                    vm.PushToWeekData();
+                }
 
-                // 2) (por si alguna otra parte depende del alias .PersonalVigenteDocument)
-                if (_week != null)
-                    LiveSyncService.Recalc(_week, _week.PersonalVigenteDocument);
-
-                // 3) Guardar archivo
+                // 2) Guarda el archivo
                 var owner = Window.GetWindow(this);
                 var path = await ProjectStorageService.SaveOrPromptAsync(owner);
 
                 MessageBox.Show($"Guardado correctamente.\n\nArchivo:\n{path}",
                     "Guardar", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (OperationCanceledException) { /* usuario canceló */ }
+            catch (OperationCanceledException)
+            {
+                // usuario canceló, nada
+            }
             catch (Exception ex)
             {
                 MessageBox.Show($"No se pudo guardar.\n{ex.Message}",
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+
     }
 }

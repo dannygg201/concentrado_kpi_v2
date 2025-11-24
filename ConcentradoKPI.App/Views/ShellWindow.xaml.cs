@@ -124,9 +124,12 @@ namespace ConcentradoKPI.App.Views
 
         private async void Save_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            // 1) UI -> WeekData (si la vista lo implementa)
+            // 1) UI -> WeekData + notificar cambio si la vista lo implementa
             if (BodyHost.Content is ISyncToWeek sync)
-                sync.SyncIntoWeek();
+            {
+                sync.SyncIntoWeek();  // copia campos de la vista al Week
+                sync.FlushToWeek();   // PushToWeekData + evento PersonalVigenteUpdated
+            }
 
             // 2) Reflejar esos cambios en el AppData actual
             MirrorWeekIntoCurrentRoot();
@@ -137,7 +140,6 @@ namespace ConcentradoKPI.App.Views
                 var ok = await ProjectStorageService.SaveOrPromptAsync(this);
                 if (!ok) return; // usuario canceló o no se guardó
 
-                // 4) ✅ Mensaje de éxito SOLO si se guardó correctamente
                 MessageBox.Show(
                     this,
                     "Guardado correctamente.",
@@ -148,7 +150,7 @@ namespace ConcentradoKPI.App.Views
             }
             catch (OperationCanceledException)
             {
-                // cancelado: no mostramos nada
+                // cancelado
             }
             catch (Exception ex)
             {
@@ -156,6 +158,7 @@ namespace ConcentradoKPI.App.Views
                                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
 
         // ====== Cerrar (botón Salir del TopBar) ======
@@ -196,7 +199,10 @@ namespace ConcentradoKPI.App.Views
                 {
                     // Volcar posibles cambios pendientes de la vista actual
                     if (BodyHost.Content is ISyncToWeek sync)
+                    {
                         sync.SyncIntoWeek();
+                        sync.FlushToWeek();   // <- aquí también notificamos
+                    }
 
                     // Reflejar WeekData -> AppData root
                     MirrorWeekIntoCurrentRoot();
@@ -215,6 +221,7 @@ namespace ConcentradoKPI.App.Views
                     e.Cancel = true;
                 }
             }
+
             // Si r == No → no guardamos y dejamos cerrar
         }
 

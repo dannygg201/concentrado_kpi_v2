@@ -183,7 +183,7 @@
                                     <MenuItem Header="✏️ Renombrar compañía"
                                               Command="{Binding PlacementTarget.Tag.RenameCompanyCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                    <MenuItem Header="❌ Cerrar compañía"
+                                    <MenuItem Header="❌ Cerrar archivo"
                                               Command="{Binding PlacementTarget.Tag.DeleteCompanyCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                 </ContextMenu>

@@ -138,5 +138,9 @@ namespace ConcentradoKPI.App.Views.Pages
             if (vm.Form is not null)
                 vm.Form = new PrecursorSifRecord { UEN = "CMC" };
         }
+        public void FlushToWeek()
+        {
+            SyncIntoWeek();
+        }
     }
 }

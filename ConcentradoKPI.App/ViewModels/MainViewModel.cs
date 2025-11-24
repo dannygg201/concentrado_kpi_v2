@@ -134,6 +134,7 @@ namespace ConcentradoKPI.App.ViewModels
             AddProjectCommand = new RelayCommand(_ => AddProject(), _ => SelectedCompany != null);
             AddWeekCommand = new RelayCommand(_ => AddWeek(), _ => SelectedProject != null);
 
+
             ImportCommand = new RelayCommand(async _ => await ImportAsync());
             ExportCommand = new RelayCommand(async _ => await ExportAsync(), _ => Companies.Any());
 
@@ -226,6 +227,9 @@ namespace ConcentradoKPI.App.ViewModels
 
             SelectedCompany = company;
             ExportCommand?.RaiseCanExecuteChanged();
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
+
         }
 
 
@@ -246,6 +250,8 @@ namespace ConcentradoKPI.App.ViewModels
 
             SelectedCompany.Projects.Add(project);
             SelectedProject = project;
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
         }
 
         private void AddWeek()
@@ -290,6 +296,8 @@ namespace ConcentradoKPI.App.ViewModels
             // Agregar al proyecto y seleccionar
             SelectedProject.Weeks.Add(week);
             SelectedWeek = week;
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
         }
 
 
@@ -302,6 +310,8 @@ namespace ConcentradoKPI.App.ViewModels
 
             SelectedCompany.Name = name;               // INotifyPropertyChanged en Company
             OnPropertyChanged(nameof(SelectedCompany)); // ya lo tienes y está bien
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
         }
 
         private void RenameProject()
@@ -313,6 +323,13 @@ namespace ConcentradoKPI.App.ViewModels
 
             SelectedProject.Name = name;               // INotifyPropertyChanged en Project
             OnPropertyChanged(nameof(SelectedProject));
+            SelectedProject.Name = name;
+            OnPropertyChanged(nameof(SelectedProject));
+
+            // AUTOSAVE
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
+
         }
 
 
@@ -340,6 +357,9 @@ namespace ConcentradoKPI.App.ViewModels
 
             SelectedWeek.WeekNumber = n;               // INotifyPropertyChanged en WeekData
             OnPropertyChanged(nameof(SelectedWeek));
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
+
         }
 
 
@@ -364,6 +384,7 @@ namespace ConcentradoKPI.App.ViewModels
             SelectedWeek = null;
 
             ExportCommand?.RaiseCanExecuteChanged();
+
         }
 
 
@@ -385,6 +406,8 @@ namespace ConcentradoKPI.App.ViewModels
 
             // (Opcional) si quieres re-evaluar Exportar aquí
             // ExportCommand?.RaiseCanExecuteChanged();
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
         }
 
         private void DeleteWeek()
@@ -403,6 +426,15 @@ namespace ConcentradoKPI.App.ViewModels
 
             // (Opcional) si quieres re-evaluar Exportar aquí
             // ExportCommand?.RaiseCanExecuteChanged();
+            SelectedProject.Weeks.Remove(SelectedWeek);
+
+            // Limpia selección
+            SelectedWeek = null;
+
+            // AUTOSAVE
+            ProjectStorageService.MarkDirty();
+            AutoSaveSilently();
+
         }
 
         private void OpenPersonal()
@@ -431,14 +463,17 @@ namespace ConcentradoKPI.App.ViewModels
                 string San(string? s)
                 {
                     if (string.IsNullOrWhiteSpace(s)) return "SinNombre";
-                    foreach (var ch in System.IO.Path.GetInvalidFileNameChars()) s = s.Replace(ch, '_');
+                    foreach (var ch in System.IO.Path.GetInvalidFileNameChars())
+                        s = s.Replace(ch, '_');
                     return s.Trim();
                 }
+
                 var companyName = SelectedCompany?.Name;
-                var today = DateTime.Now.ToString("yyyy-MM-dd");
+
+                // 🔹 SIN FECHA:
                 return companyName != null
-                    ? $"{San(companyName)} - {today}.kpi.json"
-                    : $"ConcentradoKPI - {today}.kpi.json";
+                    ? $"{San(companyName)}.kpi.json"
+                    : "ConcentradoKPI.kpi.json";
             }
 
             var sfd = new SaveFileDialog
@@ -450,13 +485,13 @@ namespace ConcentradoKPI.App.ViewModels
 
             if (sfd.ShowDialog() == true)
             {
-                // 👇 Guardamos la MISMA instancia que editas (App) y la dejamos anclada a esa ruta
                 await ProjectStorageService.SaveToAsync(sfd.FileName, App, bind: true);
 
                 Mensaje = $"Guardado: {sfd.FileName}";
                 OnPropertyChanged(nameof(Mensaje));
             }
         }
+
 
 
 
@@ -576,7 +611,6 @@ namespace ConcentradoKPI.App.ViewModels
 
         private string GetSuggestedFileName(ExportScope scope, Company? company, Project? project)
         {
-            string today = DateTime.Now.ToString("yyyy-MM-dd"); // seguro (sin '/')
             string San(string? s)
             {
                 if (string.IsNullOrWhiteSpace(s)) return "SinNombre";
@@ -588,12 +622,13 @@ namespace ConcentradoKPI.App.ViewModels
             return scope switch
             {
                 ExportScope.Project when company != null && project != null =>
-                    $"{San(company.Name)} - {San(project.Name)} - {today}.kpi.json",
+                    $"{San(company.Name)} - {San(project.Name)}.kpi.json",
                 ExportScope.Company when company != null =>
-                    $"{San(company.Name)} - {today}.kpi.json",
-                _ => $"ConcentradoKPI - {today}.kpi.json"
+                    $"{San(company.Name)}.kpi.json",
+                _ => "ConcentradoKPI.kpi.json"
             };
         }
+
 
         private Company? FindCompanyForProject(Project proj)
             => Companies.FirstOrDefault(c => c.Projects.Contains(proj));
@@ -1195,6 +1230,29 @@ namespace ConcentradoKPI.App.ViewModels
             return keys.Any(k => n.Contains(k));
         }
 
-    } 
+        // === Autosave silencioso para el MAIN ===
+        private async void AutoSaveSilently()
+        {
+            // Si no hay documento o aún no se ha elegido ruta, no hacemos nada
+            if (ProjectStorageService.CurrentData == null ||
+                string.IsNullOrWhiteSpace(ProjectStorageService.CurrentPath))
+                return;
+
+            try
+            {
+                // Guardar directamente sobre el mismo archivo, sin diálogos ni mensajes
+                await ProjectStorageService.SaveToAsync(
+                    ProjectStorageService.CurrentPath,
+                    ProjectStorageService.CurrentData,
+                    bind: true
+                );
+            }
+            catch
+            {
+                // Errores de autosave se ignoran para no molestar al usuario
+            }
+        }
+
+    }
 
 } 

@@ -19,6 +19,15 @@
         <KeyBinding Command="ApplicationCommands.Save" Modifiers="Control" Key="S"/>
     </Window.InputBindings>
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1147*"/>
+            <ColumnDefinition Width="0*"/>
+            <ColumnDefinition Width="0*"/>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="9*"/>
+            <ColumnDefinition Width="0*"/>
+            <ColumnDefinition Width="42*"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="56"/>
             <!-- Top bar -->
@@ -31,14 +40,14 @@
         <!-- TOP BAR: el DataContext se lo inyectamos en code-behind -->
         <controls:TopBar x:Name="TopBarControl"
                          Grid.Row="0"
-                         Title="Pirámide de seguridad"/>
+                         Title="Pirámide de seguridad" Grid.ColumnSpan="7"/>
 
         <!-- NAVBAR -->
-        <controls:NavBar Grid.Row="1"/>
+        <controls:NavBar Grid.Row="1" Grid.ColumnSpan="7"/>
 
         <!-- CUERPO dinámino -->
-        <Border Grid.Row="2" Margin="12" CornerRadius="8"
-            BorderBrush="#E5E5E5" BorderThickness="1" Background="White">
+        <Border Grid.Row="2" Margin="12,12,12,12" CornerRadius="8"
+            BorderBrush="#E5E5E5" BorderThickness="1" Background="White" Grid.ColumnSpan="7">
             <ContentControl x:Name="BodyHost"/>
         </Border>
     </Grid>

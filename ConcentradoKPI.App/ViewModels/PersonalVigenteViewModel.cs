@@ -18,40 +18,43 @@ namespace ConcentradoKPI.App.ViewModels
         public Project Project { get; }
         public WeekData Week { get; }
 
+        public static event Action<WeekData>? PersonalVigenteUpdated;
+
+        private bool _isLoaded;
         // ===== Encabezado =====
         private string? _razonSocial;
-        public string? RazonSocial { get => _razonSocial; set { if (_razonSocial == value) return; _razonSocial = value; OnPropertyChanged(); } }
+        public string? RazonSocial { get => _razonSocial; set { if (_razonSocial == value) return; _razonSocial = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private string? _responsableObra;
-        public string? ResponsableObra { get => _responsableObra; set { if (_responsableObra == value) return; _responsableObra = value; OnPropertyChanged(); } }
+        public string? ResponsableObra { get => _responsableObra; set { if (_responsableObra == value) return; _responsableObra = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private string? _registroIMSS;
-        public string? RegistroIMSS { get => _registroIMSS; set { if (_registroIMSS == value) return; _registroIMSS = value; OnPropertyChanged(); } }
+        public string? RegistroIMSS { get => _registroIMSS; set { if (_registroIMSS == value) return; _registroIMSS = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private DateTime? _fecha = DateTime.Today;
-        public DateTime? Fecha { get => _fecha; set { if (_fecha == value) return; _fecha = value; OnPropertyChanged(); } }
+        public DateTime? Fecha { get => _fecha; set { if (_fecha == value) return; _fecha = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private string? _rfcCompania;
-        public string? RFCCompania { get => _rfcCompania; set { if (_rfcCompania == value) return; _rfcCompania = value; OnPropertyChanged(); } }
+        public string? RFCCompania { get => _rfcCompania; set { if (_rfcCompania == value) return; _rfcCompania = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private string? _numeroProveedor;
-        public string? NumeroProveedor { get => _numeroProveedor; set { if (_numeroProveedor == value) return; _numeroProveedor = value; OnPropertyChanged(); } }
+        public string? NumeroProveedor { get => _numeroProveedor; set { if (_numeroProveedor == value) return; _numeroProveedor = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private string? _ordenCompra;
-        public string? OrdenCompra { get => _ordenCompra; set { if (_ordenCompra == value) return; _ordenCompra = value; OnPropertyChanged(); } }
+        public string? OrdenCompra { get => _ordenCompra; set { if (_ordenCompra == value) return; _ordenCompra = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private string? _direccionLegal;
-        public string? DireccionLegal { get => _direccionLegal; set { if (_direccionLegal == value) return; _direccionLegal = value; OnPropertyChanged(); } }
+        public string? DireccionLegal { get => _direccionLegal; set { if (_direccionLegal == value) return; _direccionLegal = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         private string? _observaciones;
-        public string? Observaciones { get => _observaciones; set { if (_observaciones == value) return; _observaciones = value; OnPropertyChanged(); } }
+        public string? Observaciones { get => _observaciones; set { if (_observaciones == value) return; _observaciones = value; OnPropertyChanged(); if (_isLoaded) ProjectStorageService.MarkDirty(); } }
 
         // Flag Tec. Seguridad (formulario)
         private bool _newEsTecnicoSeguridad;
         public bool NewEsTecnicoSeguridad
         {
             get => _newEsTecnicoSeguridad;
-            set { if (_newEsTecnicoSeguridad == value) return; _newEsTecnicoSeguridad = value; OnPropertyChanged(); }
+            set { if (_newEsTecnicoSeguridad == value) return; _newEsTecnicoSeguridad = value; OnPropertyChanged();  }
         }
 
         // ===== Tabla =====
@@ -160,6 +163,7 @@ namespace ConcentradoKPI.App.ViewModels
             ApplyEditCommand = new RelayCommand(_ => ApplyEdit(), _ => CanEditOrDelete());
             DeleteSelectedCommand = new RelayCommand(_ => DeleteSelected(), _ => CanEditOrDelete());
             ClearFormCommand = new RelayCommand(_ => ClearForm());
+            _isLoaded = true;
         }
 
         // ===== Handlers =====
@@ -176,6 +180,7 @@ namespace ConcentradoKPI.App.ViewModels
                 e.PropertyName == nameof(PersonRow.S))
             {
                 ScheduleTotals();
+                if (_isLoaded) ProjectStorageService.MarkDirty();
             }
         }
 
@@ -201,6 +206,13 @@ namespace ConcentradoKPI.App.ViewModels
             Renumber();
             ScheduleTotals();
             RefreshCommands();
+            if (_isLoaded &&
+                (e.Action == NotifyCollectionChangedAction.Add ||
+                    e.Action == NotifyCollectionChangedAction.Remove ||
+                    e.Action == NotifyCollectionChangedAction.Replace))
+            {
+                ProjectStorageService.MarkDirty();
+            }
         }
 
         // ===== CanExecute =====
@@ -402,6 +414,7 @@ namespace ConcentradoKPI.App.ViewModels
 
                 // Recalcular Live a partir del documento recién persistido (sin NotifyAll)
                 LiveSyncService.Recalc(Week, doc);
+                PersonalVigenteUpdated?.Invoke(Week);
             }
             finally
             {

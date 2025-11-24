@@ -60,6 +60,13 @@ namespace ConcentradoKPI.App.Views.Pages
         {
             SyncIntoWeek();
         }
+        // ==== ISyncToWeek.FlushToWeek ====
+        public void FlushToWeek()
+        {
+            // Para Incidentes no hay lógica especial de Live,
+            // simplemente aseguramos que WeekData tenga lo último
+            SyncIntoWeek();
+        }
 
         // ======= Shell llamará esto antes de persistir =======
         public void SyncIntoWeek()

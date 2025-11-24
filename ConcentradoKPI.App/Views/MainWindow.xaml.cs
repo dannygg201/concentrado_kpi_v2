@@ -7,7 +7,8 @@ using System.Windows.Input;
 using System.Collections.Generic;
 using System;
 using ConcentradoKPI.App.Views;
-using ConcentradoKPI.App.Views.Pages; // <- para PersonalVigenteView
+using ConcentradoKPI.App.Views.Pages;
+using System.ComponentModel;
 
 namespace ConcentradoKPI.App.Views
 {
@@ -17,6 +18,9 @@ namespace ConcentradoKPI.App.Views
         {
             InitializeComponent();
             Loaded += MainWindow_Loaded;
+
+            PersonalVigenteViewModel.PersonalVigenteUpdated -= OnPersonalVigenteUpdated;
+            PersonalVigenteViewModel.PersonalVigenteUpdated += OnPersonalVigenteUpdated;
         }
 
         // Registro de ventanas abiertas
@@ -38,25 +42,67 @@ namespace ConcentradoKPI.App.Views
                 vm.OpenPersonalRequested -= Vm_OpenPersonalRequested;
                 vm.OpenPersonalRequested += Vm_OpenPersonalRequested;
 
-                // Si ya hay selección al cargar, intenta mostrar preview
+                // 👇 Nos suscribimos a cambios del VM
+                vm.PropertyChanged -= Vm_PropertyChanged;
+                vm.PropertyChanged += Vm_PropertyChanged;
+
+                // 🔹 Si NO hay selección pero sí hay datos, toma la primera compañía/proyecto/semana
+                if (vm.SelectedCompany == null || vm.SelectedProject == null || vm.SelectedWeek == null)
+                {
+                    var firstCompany = vm.Companies.FirstOrDefault();
+                    var firstProject = firstCompany?.Projects.FirstOrDefault();
+                    var firstWeek = firstProject?.Weeks.FirstOrDefault();
+
+                    if (firstCompany != null && firstProject != null && firstWeek != null)
+                    {
+                        vm.SelectedCompany = firstCompany;
+                        vm.SelectedProject = firstProject;
+                        vm.SelectedWeek = firstWeek;
+                    }
+                }
+
+                // 🔹 Si ya hay selección, carga la vista previa
                 if (vm.SelectedCompany != null && vm.SelectedProject != null && vm.SelectedWeek != null)
                     LoadPersonalVigentePreview(vm.SelectedCompany, vm.SelectedProject, vm.SelectedWeek);
             }
         }
 
+        private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (sender is not MainViewModel vm) return;
+
+            // Solo reaccionamos a cambios de selección
+            if (e.PropertyName == nameof(MainViewModel.SelectedWeek) ||
+                e.PropertyName == nameof(MainViewModel.SelectedProject) ||
+                e.PropertyName == nameof(MainViewModel.SelectedCompany))
+            {
+                if (vm.SelectedCompany != null && vm.SelectedProject != null && vm.SelectedWeek != null)
+                {
+                    // 🔎 Recarga la vista previa cuando haya contexto completo
+                    LoadPersonalVigentePreview(vm.SelectedCompany, vm.SelectedProject, vm.SelectedWeek);
+                }
+                else
+                {
+                    // Si se limpia la selección, limpiamos la vista previa
+                    ClearPreview();
+                }
+            }
+        }
+
+
         // ===== Preview helpers =====
         private void LoadPersonalVigentePreview(Company c, Project p, WeekData w)
         {
-            var view = new PersonalVigenteView
+            var view = new PersonalVigenteView(c, p, w)
             {
-                DataContext = new PersonalVigenteViewModel(c, p, w),
-                IsHitTestVisible = false, // SOLO VISUAL
+                IsHitTestVisible = false,
                 Focusable = false
             };
 
             PreviewHost.Content = view;
             w?.Live?.NotifyAll();
         }
+
 
         private void ClearPreview()
         {
@@ -117,12 +163,25 @@ namespace ConcentradoKPI.App.Views
                     vm.SelectedProject = project;
                     foreach (var c in vm.Companies)
                         if (c.Projects.Contains(project)) { vm.SelectedCompany = c; break; }
-                    vm.SelectedWeek = null;
-                    ClearPreview();
+
+                    // 🔹 Igual que en el TreeView: si hay semanas, toma la primera y muestra preview
+                    var firstWeek = project.Weeks.FirstOrDefault();
+                    if (firstWeek != null)
+                    {
+                        vm.SelectedWeek = firstWeek;
+                        LoadPersonalVigentePreview(vm.SelectedCompany!, vm.SelectedProject!, vm.SelectedWeek!);
+                    }
+                    else
+                    {
+                        vm.SelectedWeek = null;
+                        ClearPreview();
+                    }
+
                     CommandManager.InvalidateRequerySuggested();
                 }
             }
         }
+
 
         private void WeekMenu_Opened(object sender, RoutedEventArgs e)
         {
@@ -171,8 +230,19 @@ namespace ConcentradoKPI.App.Views
                     vm.SelectedProject = p;
                     foreach (var comp in vm.Companies)
                         if (comp.Projects.Contains(p)) { vm.SelectedCompany = comp; break; }
-                    vm.SelectedWeek = null;
-                    ClearPreview();
+
+                    // 🔹 Si el proyecto tiene semanas, auto-selecciona la primera y muestra la preview
+                    var firstWeek = p.Weeks.FirstOrDefault();
+                    if (firstWeek != null)
+                    {
+                        vm.SelectedWeek = firstWeek;
+                        LoadPersonalVigentePreview(vm.SelectedCompany!, vm.SelectedProject!, vm.SelectedWeek!);
+                    }
+                    else
+                    {
+                        vm.SelectedWeek = null;
+                        ClearPreview();
+                    }
                     break;
 
                 case WeekData w:
@@ -192,5 +262,24 @@ namespace ConcentradoKPI.App.Views
                     break;
             }
         }
+        private void OnPersonalVigenteUpdated(WeekData updatedWeek)
+        {
+            // Nos regresamos al hilo de UI por si viene de otro contexto
+            Dispatcher.Invoke(() =>
+            {
+                if (DataContext is not MainViewModel vm) return;
+
+                // Solo recargamos si la semana actual seleccionada es justo la que se actualizó
+                if (vm.SelectedCompany == null || vm.SelectedProject == null || vm.SelectedWeek == null)
+                    return;
+
+                if (!ReferenceEquals(vm.SelectedWeek, updatedWeek))
+                    return;
+
+                // 🔃 Re-crear la vista previa con los datos ya guardados
+                LoadPersonalVigentePreview(vm.SelectedCompany, vm.SelectedProject, vm.SelectedWeek);
+            });
+        }
+
     }
 }
