@@ -10,37 +10,80 @@ namespace ConcentradoKPI.App.ViewModels
     public class ContratistaRow : INotifyPropertyChanged
     {
         protected bool Set<T>(ref T f, T v, [CallerMemberName] string? n = null)
-        { if (Equals(f, v)) return false; f = v; OnPropertyChanged(n); return true; }
+        {
+            if (Equals(f, v)) return false;
+            f = v;
+            OnPropertyChanged(n);
+            return true;
+        }
 
-        private string _nombre = ""; public string Nombre { get => _nombre; set => Set(ref _nombre, value); }
-        private string _especialidad = ""; public string Especialidad { get => _especialidad; set => Set(ref _especialidad, value); }
+        private string _nombre = "";
+        public string Nombre { get => _nombre; set => Set(ref _nombre, value); }
 
-        private int _tec; public int TecnicosSeguridad { get => _tec; set { if (Set(ref _tec, value)) RaiseCalc(); } }
-        private int _col; public int Colaboradores { get => _col; set { if (Set(ref _col, value)) RaiseCalc(); } }
-        private int _hrs; public int HorasTrabajadas { get => _hrs; set { if (Set(ref _hrs, value)) RaiseCalc(); } }
+        private string _especialidad = "";
+        public string Especialidad { get => _especialidad; set => Set(ref _especialidad, value); }
 
-        private int _lti; public int LTI { get => _lti; set { if (Set(ref _lti, value)) RaiseCalc(); } }
-        private int _mdi; public int MDI { get => _mdi; set { if (Set(ref _mdi, value)) RaiseCalc(); } }
-        private int _mti; public int MTI { get => _mti; set { if (Set(ref _mti, value)) RaiseCalc(); } }
-        private int _tri; public int TRI { get => _tri; set { if (Set(ref _tri, value)) RaiseCalc(); } }
-        private int _fai; public int FAI { get => _fai; set { if (Set(ref _fai, value)) RaiseCalc(); } }
+        private int _tec;
+        public int TecnicosSeguridad { get => _tec; set { if (Set(ref _tec, value)) RaiseCalc(); } }
 
-        private int _inc; public int Incidentes { get => _inc; set { if (Set(ref _inc, value)) RaiseCalc(); } }
-        private int _psC; public int PrecursoresSifComportamiento { get => _psC; set { if (Set(ref _psC, value)) RaiseCalc(); } }
-        private int _psK; public int PrecursoresSifCondicion { get => _psK; set { if (Set(ref _psK, value)) RaiseCalc(); } }
-        private int _as; public int ActosSeguros { get => _as; set { if (Set(ref _as, value)) RaiseCalc(); } }
-        private int _ai; public int ActosInseguros { get => _ai; set { if (Set(ref _ai, value)) RaiseCalc(); } }
+        private int _col;
+        public int Colaboradores { get => _col; set { if (Set(ref _col, value)) RaiseCalc(); } }
+
+        private int _hrs;
+        public int HorasTrabajadas { get => _hrs; set { if (Set(ref _hrs, value)) RaiseCalc(); } }
+
+        private int _lti;
+        public int LTI { get => _lti; set { if (Set(ref _lti, value)) RaiseCalc(); } }
+
+        private int _mdi;
+        public int MDI { get => _mdi; set { if (Set(ref _mdi, value)) RaiseCalc(); } }
+
+        private int _mti;
+        public int MTI { get => _mti; set { if (Set(ref _mti, value)) RaiseCalc(); } }
+
+        private int _tri;
+        public int TRI { get => _tri; set { if (Set(ref _tri, value)) RaiseCalc(); } }
+
+        private int _fai;
+        public int FAI { get => _fai; set { if (Set(ref _fai, value)) RaiseCalc(); } }
+
+        private int _inc;
+        public int Incidentes { get => _inc; set { if (Set(ref _inc, value)) RaiseCalc(); } }
+
+        private int _psC;
+        public int PrecursoresSifComportamiento { get => _psC; set { if (Set(ref _psC, value)) RaiseCalc(); } }
+
+        private int _psK;
+        public int PrecursoresSifCondicion { get => _psK; set { if (Set(ref _psK, value)) RaiseCalc(); } }
+
+        private int _as;
+        public int ActosSeguros { get => _as; set { if (Set(ref _as, value)) RaiseCalc(); } }
+
+        private int _ai;
+        public int ActosInseguros { get => _ai; set { if (Set(ref _ai, value)) RaiseCalc(); } }
 
         // 🔹 NUEVOS
-        private int _corr; public int Corregidas { get => _corr; set { if (Set(ref _corr, value)) RaiseCalc(); } }
-        private int _det; public int Detectadas { get => _det; set { if (Set(ref _det, value)) RaiseCalc(); } }
+        private int _corr;
+        public int Corregidas { get => _corr; set { if (Set(ref _corr, value)) RaiseCalc(); } }
+
+        private int _det;
+        public int Detectadas { get => _det; set { if (Set(ref _det, value)) RaiseCalc(); } }
 
         public int TotalSemanal =>
             Incidentes + PrecursoresSifComportamiento + PrecursoresSifCondicion + ActosInseguros + ActosSeguros;
 
-        public double PorcentajeAvance =>
-            (ActosSeguros + ActosInseguros) == 0 ? 1.0
-            : Math.Clamp((double)ActosSeguros / (ActosSeguros + ActosInseguros), 0, 1);
+        // 🔹 AHORA con backing field
+        private double _porcentajeAvance;
+        public double PorcentajeAvance
+        {
+            get => _porcentajeAvance;
+            private set
+            {
+                if (Math.Abs(_porcentajeAvance - value) < 0.0001) return;
+                _porcentajeAvance = value;
+                OnPropertyChanged();
+            }
+        }
 
         public bool IsTotal { get; set; }
 
@@ -51,7 +94,24 @@ namespace ConcentradoKPI.App.ViewModels
         private void RaiseCalc()
         {
             OnPropertyChanged(nameof(TotalSemanal));
-            OnPropertyChanged(nameof(PorcentajeAvance));
+            RecalcularPorcentaje();
+        }
+
+        private void RecalcularPorcentaje()
+        {
+            double val = 0.0;
+
+            // ✅ Regla: solo condiciones inseguras
+            //  - 0 detectadas => 0 %
+            //  - 5 detectadas / 5 corregidas => 100 %
+            if (Detectadas > 0)
+            {
+                val = (double)Corregidas / Detectadas;
+                if (val < 0) val = 0;
+                if (val > 1) val = 1;
+            }
+
+            PorcentajeAvance = val;
         }
     }
 

@@ -174,18 +174,25 @@
                                 <StackPanel Margin="6">
                                     <TextBlock Text="Condiciones detectadas" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
                                     <TextBox Text="{Binding Values.Detectadas, UpdateSourceTrigger=PropertyChanged}"
-                                        PreviewTextInput="NumericOnly"/>
+                                        PreviewTextInput="NumericOnly"
+                                        TextChanged="DetectadasOCorregidas_TextChanged"/>
                                 </StackPanel>
                                 <StackPanel Margin="6">
                                     <TextBlock Text="Condiciones corregidas" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
                                     <TextBox Text="{Binding Values.Corregidas, UpdateSourceTrigger=PropertyChanged}"
-                                        PreviewTextInput="NumericOnly"/>
+                                          PreviewTextInput="NumericOnly"
+                                          TextChanged="DetectadasOCorregidas_TextChanged"/>
                                 </StackPanel>
                                 <StackPanel Margin="6">
                                     <TextBlock Text="Avance (condiciones)" Style="{StaticResource LabelOnDark}" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Values.Avance, UpdateSourceTrigger=PropertyChanged}"
-                                        PreviewTextInput="NumericOnly"/>
+                                    <TextBox x:Name="TxtAvance"
+             Text="{Binding Values.Avance, Mode=OneWay}"
+             IsReadOnly="True"
+             IsTabStop="False"
+             Focusable="False"
+             Background="#F4F6F8"/>
                                 </StackPanel>
+
 
                             </UniformGrid>
                         </Border>

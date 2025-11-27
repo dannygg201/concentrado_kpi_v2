@@ -1,8 +1,9 @@
-﻿using System;
+﻿using ConcentradoKPI.App.Models;
+using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
-using ConcentradoKPI.App.Models;
+using System.Windows.Controls;
 
 namespace ConcentradoKPI.App.Views
 {
@@ -36,7 +37,7 @@ namespace ConcentradoKPI.App.Views
 
             // Clonamos valores actuales y mapeamos LastRecord (string) -> DateTime?
             var vm = new Vm { Values = current.Clone() };
-
+            vm.Values.Avance = CalcularAvanceCondiciones(vm.Values.Detectadas, vm.Values.Corregidas);
             if (!string.IsNullOrWhiteSpace(vm.Values.LastRecord))
             {
                 // Intentamos parsear con formatos comunes (yyyy-MM-dd preferente)
@@ -72,7 +73,10 @@ namespace ConcentradoKPI.App.Views
                 if (vm.Values.AvanceProgramaPct < 0) vm.Values.AvanceProgramaPct = 0;
                 if (vm.Values.AvanceProgramaPct > 100) vm.Values.AvanceProgramaPct = 100;
 
-                // Mapear DatePicker -> string (o vacío si no eligieron fecha)
+                // 🔹 Recalcular avance condiciones SOLO con Detectadas/Corregidas
+                vm.Values.Avance = CalcularAvanceCondiciones(vm.Values.Detectadas, vm.Values.Corregidas);
+
+                // Mapear DatePicker -> string
                 vm.Values.LastRecord = vm.LastRecordDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty;
 
                 Result = vm.Values;
@@ -84,5 +88,29 @@ namespace ConcentradoKPI.App.Views
         {
             DialogResult = false; // Cancel
         }
+        private static int CalcularAvanceCondiciones(int detectadas, int corregidas)
+        {
+            if (detectadas <= 0)
+                return 0;
+
+            double ratio = (double)corregidas / detectadas;
+            if (ratio < 0) ratio = 0;
+            if (ratio > 1) ratio = 1;
+
+            // porcentaje entero 0–100
+            return (int)Math.Round(ratio * 100, MidpointRounding.AwayFromZero);
+        }
+        private void DetectadasOCorregidas_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (DataContext is Vm vm)
+            {
+                // Recalcular avance en el modelo
+                vm.Values.Avance = CalcularAvanceCondiciones(vm.Values.Detectadas, vm.Values.Corregidas);
+
+                // Refrescar el TextBox de Avance inmediatamente
+                TxtAvance.Text = vm.Values.Avance.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
     }
 }

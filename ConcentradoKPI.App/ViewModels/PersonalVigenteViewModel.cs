@@ -57,6 +57,15 @@ namespace ConcentradoKPI.App.ViewModels
             set { if (_newEsTecnicoSeguridad == value) return; _newEsTecnicoSeguridad = value; OnPropertyChanged();  }
         }
 
+
+        // NUEVO: Status Activo/Baja (formulario)
+        private bool _newEstaActivo = true;
+        public bool NewEstaActivo
+        {
+            get => _newEstaActivo;
+            set { if (_newEstaActivo == value) return; _newEstaActivo = value; OnPropertyChanged(); }
+        }
+
         // ===== Tabla =====
         public ObservableCollection<PersonRow> Personas { get; } = new();
 
@@ -81,6 +90,7 @@ namespace ConcentradoKPI.App.ViewModels
                     NewD = value.D; NewL = value.L; NewM = value.M; NewMM = value.MM;
                     NewJ = value.J; NewV = value.V; NewS = value.S;
                     NewEsTecnicoSeguridad = value.EsTecnicoSeguridad;
+                    NewEstaActivo = value.EstaActivo;
                 }
                 else
                 {
@@ -171,6 +181,7 @@ namespace ConcentradoKPI.App.ViewModels
         {
             if (e.PropertyName == nameof(PersonRow.HHSemana) ||
                 e.PropertyName == nameof(PersonRow.EsTecnicoSeguridad) ||
+                e.PropertyName == nameof(PersonRow.EstaActivo) ||
                 e.PropertyName == nameof(PersonRow.D) ||
                 e.PropertyName == nameof(PersonRow.L) ||
                 e.PropertyName == nameof(PersonRow.M) ||
@@ -259,7 +270,8 @@ namespace ConcentradoKPI.App.ViewModels
                 J = NewJ,
                 V = NewV,
                 S = NewS,
-                EsTecnicoSeguridad = NewEsTecnicoSeguridad
+                EsTecnicoSeguridad = NewEsTecnicoSeguridad,
+                EstaActivo = NewEstaActivo
             };
 
             row.PropertyChanged += OnPersonRowPropertyChanged;
@@ -289,6 +301,7 @@ namespace ConcentradoKPI.App.ViewModels
             row.D = NewD; row.L = NewL; row.M = NewM; row.MM = NewMM;
             row.J = NewJ; row.V = NewV; row.S = NewS;
             row.EsTecnicoSeguridad = NewEsTecnicoSeguridad;
+            row.EstaActivo = NewEstaActivo;
 
             if (oldPuestoNorm != newPuestoNorm)
             {
@@ -326,6 +339,7 @@ namespace ConcentradoKPI.App.ViewModels
             NewPuesto = "";
             NewD = NewL = NewM = NewMM = NewJ = NewV = NewS = 0;
             NewEsTecnicoSeguridad = false;
+            NewEstaActivo = true;
             RefreshCommands();
         }
 
@@ -375,13 +389,18 @@ namespace ConcentradoKPI.App.ViewModels
 
                 if (Week?.Live != null)
                 {
-                    Week.Live.ColaboradoresTotal = Personas.Count;
-                    Week.Live.TecnicosSeguridadTotal = Personas.Count(p => p.EsTecnicoSeguridad);
-                    Week.Live.HorasTrabajadasTotal = Personas.Sum(p => p.D + p.L + p.M + p.MM + p.J + p.V + p.S);
+                    // 🔹 Solo PERSONAL ACTIVO cuenta en los totales
+                    var activos = Personas.Where(p => p.EstaActivo).ToList();
+
+                    Week.Live.ColaboradoresTotal = activos.Count;
+                    Week.Live.TecnicosSeguridadTotal = activos.Count(p => p.EsTecnicoSeguridad);
+                    Week.Live.HorasTrabajadasTotal = activos.Sum(p => p.D + p.L + p.M + p.MM + p.J + p.V + p.S);
                 }
             }
             finally { _isUpdatingTotals = false; }
         }
+
+
 
         // ===== Persistencia =====
         public void PushToWeekData()

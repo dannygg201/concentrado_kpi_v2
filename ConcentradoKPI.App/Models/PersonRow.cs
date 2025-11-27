@@ -69,7 +69,17 @@ namespace ConcentradoKPI.App.Models
         {
             _esTecnicoSeguridad = false;
         }
-
+        private bool _estaActivo = true;
+        public bool EstaActivo
+        {
+            get => _estaActivo;
+            set
+            {
+                if (_estaActivo == value) return;
+                _estaActivo = value;
+                OnPropertyChanged();
+            }
+        }
         private static int Clamp(int v) => Math.Max(0, Math.Min(24, v));
 
         private void Recalc()

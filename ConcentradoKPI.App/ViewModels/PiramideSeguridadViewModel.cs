@@ -84,6 +84,27 @@ namespace ConcentradoKPI.App.ViewModels
         /// Relee Week.PersonalVigente para calcular Colaboradores, HorasTrabajadas y Técnicos de Seguridad.
         /// Úsalo solo si NO tienes Live o cuando hidrates desde archivo.
         /// </summary>
+        /// 
+        private void RecalculateAvanceCondiciones()
+        {
+            // Parsear detectadas
+            if (!int.TryParse(CondicionesDetectadas, NumberStyles.Any, CultureInfo.InvariantCulture, out var detectadas)
+                || detectadas <= 0)
+            {
+                AvanceCondiciones = "0%";
+                return;
+            }
+
+            // Parsear corregidas
+            if (!int.TryParse(CondicionesCorregidas, NumberStyles.Any, CultureInfo.InvariantCulture, out var corregidas))
+                corregidas = 0;
+
+            if (corregidas < 0) corregidas = 0;
+            if (corregidas > detectadas) corregidas = detectadas;
+
+            var pct = (int)Math.Round((double)corregidas * 100.0 / detectadas);
+            AvanceCondiciones = $"{pct}%";
+        }
         public void RecalculateFromWeek()
         {
             var lista = Week?.PersonalVigenteDocument?.Personal ?? Enumerable.Empty<PersonRow>();
@@ -111,9 +132,42 @@ namespace ConcentradoKPI.App.ViewModels
         string _Pre = "0"; public string Precursores { get => _Pre; set { _Pre = value; OnPropertyChanged(); } }
         string _Seg = "0"; public string Seguros { get => _Seg; set { _Seg = value; OnPropertyChanged(); } }
         string _Ins = "0"; public string Inseguros { get => _Ins; set { _Ins = value; OnPropertyChanged(); } }
-        string _CD = "0"; public string CondicionesDetectadas { get => _CD; set { _CD = value; OnPropertyChanged(); } }
-        string _CC = "0"; public string CondicionesCorregidas { get => _CC; set { _CC = value; OnPropertyChanged(); } }
-        string _AvC = "0%"; public string AvanceCondiciones { get => _AvC; set { _AvC = value; OnPropertyChanged(); } }
+        string _CD = "0";
+        public string CondicionesDetectadas
+        {
+            get => _CD;
+            set
+            {
+                if (_CD == value) return;
+                _CD = value;
+                OnPropertyChanged();
+                RecalculateAvanceCondiciones();
+            }
+        }
+        string _CC = "0";
+        public string CondicionesCorregidas
+        {
+            get => _CC;
+            set
+            {
+                if (_CC == value) return;
+                _CC = value;
+                OnPropertyChanged();
+                RecalculateAvanceCondiciones();
+            }
+        }
+        string _AvC = "0%";
+        public string AvanceCondiciones
+        {
+            get => _AvC;
+            private set   // ← importante: que no lo modifiquen desde fuera
+            {
+                if (_AvC == value) return;
+                _AvC = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(Avance)); // alias
+            }
+        }
         string _AvP = "0"; public string AvanceProgramaPct { get => _AvP; set { _AvP = value; OnPropertyChanged(); } }
 
         // ===== Laterales =====
@@ -132,10 +186,17 @@ namespace ConcentradoKPI.App.ViewModels
         string _LR = ""; public string LastRecord { get => _LR; set { _LR = value; OnPropertyChanged(); } }
 
         // ===== Aliases para XAML =====
-        public string Detectadas { get => CondicionesDetectadas; set { if (CondicionesDetectadas != value) { CondicionesDetectadas = value; OnPropertyChanged(); } } }
-        public string Corregidas { get => CondicionesCorregidas; set { if (CondicionesCorregidas != value) { CondicionesCorregidas = value; OnPropertyChanged(); } } }
-        public string Avance { get => AvanceCondiciones; set { if (AvanceCondiciones != value) { AvanceCondiciones = value; OnPropertyChanged(); } } }
-
+        public string Detectadas
+        {
+            get => CondicionesDetectadas;
+            set => CondicionesDetectadas = value;
+        }
+        public string Corregidas
+        {
+            get => CondicionesCorregidas;
+            set => CondicionesCorregidas = value;
+        }
+        public string Avance => AvanceCondiciones;
         // ===== Incidentes sin lesión (2 cuadros) =====
         string _Inc1 = "0"; public string IncidentesSinLesion1 { get => _Inc1; set { _Inc1 = value; OnPropertyChanged(); } }
         string _Inc2 = "0"; public string IncidentesSinLesion2 { get => _Inc2; set { _Inc2 = value; OnPropertyChanged(); } }

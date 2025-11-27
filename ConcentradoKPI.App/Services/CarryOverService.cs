@@ -37,6 +37,7 @@ namespace ConcentradoKPI.App.Services
             }
 
             // 2) PERSONAL VIGENTE: clonar encabezado + personal con horas = 0
+            // 2) PERSONAL VIGENTE: clonar encabezado + personal con horas = 0
             if (prev.PersonalVigenteDocument != null)
             {
                 var src = prev.PersonalVigenteDocument;
@@ -56,15 +57,25 @@ namespace ConcentradoKPI.App.Services
                     Personal = new List<PersonRow>()
                 };
 
-                foreach (var p in src.Personal)
+                // 🔴 AQUÍ EL CAMBIO IMPORTANTE:
+                // Solo arrastramos los que SIGUEN ACTIVOS en la semana anterior
+                var personasSrc = src.Personal ?? Enumerable.Empty<PersonRow>();
+
+                foreach (var p in personasSrc.Where(p => p.EstaActivo))
                 {
                     copy.Personal.Add(new PersonRow
                     {
-                        Numero = p.Numero,
+                        // opcional: reenumerar por si se “pierden” huecos
+                        Numero = copy.Personal.Count + 1,
+
                         Nombre = p.Nombre,
                         Afiliacion = p.Afiliacion,
                         Puesto = p.Puesto,
+
                         EsTecnicoSeguridad = p.EsTecnicoSeguridad,
+                        EstaActivo = true,   // 👈 siguen activos en la nueva semana
+
+                        // Horas en 0 para la nueva semana
                         D = 0,
                         L = 0,
                         M = 0,
@@ -86,6 +97,7 @@ namespace ConcentradoKPI.App.Services
                 // Sin PV previo: deja Live en 0 y notifica
                 LiveSyncService.Recalc(targetWeek, null);
             }
+
 
             // 3) PIRÁMIDE: clonar y FORZAR 3 campos desde Live (no arrastrar horas/personas/técnicos)
             if (prev.PiramideSeguridad != null)

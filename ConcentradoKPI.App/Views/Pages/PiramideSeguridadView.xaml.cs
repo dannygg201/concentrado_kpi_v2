@@ -21,6 +21,7 @@ namespace ConcentradoKPI.App.Views.Pages
         public PiramideSeguridadView()
         {
             InitializeComponent();
+
             DataContextChanged += PiramideSeguridadView_DataContextChanged;
 
             if (DesignerProperties.GetIsInDesignMode(this))
@@ -77,10 +78,14 @@ namespace ConcentradoKPI.App.Views.Pages
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
             if (dlg.ShowDialog() == true)
+            {
                 ApplyValuesToVm(dlg.Result);
+                SyncWeekFromVm();              // 🔹 actualiza _week.PiramideSeguridad ya mismo
+            }
 
             ProjectStorageService.MarkDirty();
         }
+
 
         private void PiramideSeguridadView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
@@ -128,7 +133,7 @@ namespace ConcentradoKPI.App.Views.Pages
         private PiramideValues GetValuesFromVm()
         {
             var vm = DataContext!;
-            return new PiramideValues
+            var valores = new PiramideValues
             {
                 Companias = GetIntProp(vm, "Companias"),
                 Colaboradores = GetIntProp(vm, "Colaboradores"),
@@ -140,7 +145,7 @@ namespace ConcentradoKPI.App.Views.Pages
                 Inseguros = GetIntProp(vm, "Inseguros"),
                 Detectadas = GetIntProp(vm, "Detectadas"),
                 Corregidas = GetIntProp(vm, "Corregidas"),
-                Avance = GetIntProp(vm, "Avance"),
+                // Avance lo calculamos abajo
                 AvanceProgramaPct = GetIntProp(vm, "AvanceProgramaPct"),
                 Efectividad = GetIntProp(vm, "Efectividad"),
                 TerritoriosRojo = GetIntProp(vm, "TerritoriosRojo"),
@@ -164,7 +169,22 @@ namespace ConcentradoKPI.App.Views.Pages
                 LTI2 = GetIntProp(vm, "LTI2"),
                 LTI3 = GetIntProp(vm, "LTI3")
             };
+
+            // 🔹 calcular Avance = % corregidas / detectadas
+            if (valores.Detectadas > 0)
+            {
+                var corr = Math.Clamp(valores.Corregidas, 0, valores.Detectadas);
+                valores.Avance = (int)Math.Round((double)corr * 100.0 / valores.Detectadas);
+            }
+            else
+            {
+                valores.Avance = 0;
+            }
+
+            return valores;
         }
+
+
 
         private void ApplyValuesToVm(PiramideValues v)
         {
@@ -179,7 +199,6 @@ namespace ConcentradoKPI.App.Views.Pages
             SetIntProp(vm, "Inseguros", v.Inseguros);
             SetIntProp(vm, "Detectadas", v.Detectadas);
             SetIntProp(vm, "Corregidas", v.Corregidas);
-            SetIntProp(vm, "Avance", v.Avance);
             SetIntProp(vm, "AvanceProgramaPct", v.AvanceProgramaPct);
             SetIntProp(vm, "Efectividad", v.Efectividad);
             SetIntProp(vm, "TerritoriosRojo", v.TerritoriosRojo);
